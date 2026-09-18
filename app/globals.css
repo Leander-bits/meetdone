@@ -1,0 +1,76 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--card);
+  --color-popover-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f0f3f1;
+  --color-secondary-foreground: #34483e;
+  --color-muted: #f3f5f4;
+  --color-muted-foreground: #68766f;
+  --color-accent: #edf4f0;
+  --color-accent-foreground: #244e3c;
+  --color-destructive: #b54336;
+  --color-border: #dfe6e1;
+  --color-input: #d7dfda;
+  --color-ring: #418566;
+  --radius-sm: 0.35rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.7rem;
+  --radius-xl: 1rem;
+  --font-sans: Arial, Helvetica, sans-serif;
+}
+:root {
+  --background: #f7f9f7;
+  --foreground: #22372d;
+  --card: #ffffff;
+  --primary: #246344;
+}
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  button:not(:disabled),
+  summary,
+  select {
+    cursor: pointer;
+  }
+  button,
+  a,
+  input,
+  textarea,
+  select,
+  summary {
+    @apply outline-offset-4;
+  }
+  ::selection {
+    background: #cde5d6;
+  }
+}
+@layer components {
+  .surface {
+    @apply rounded-xl border bg-white;
+  }
+  .eyebrow {
+    @apply text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground;
+  }
+  .field-label {
+    @apply mb-1.5 block text-xs font-semibold text-foreground;
+  }
+  .native-select {
+    @apply h-9 w-full rounded-md border bg-white px-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60;
+  }
+  .section-title {
+    @apply text-lg font-semibold tracking-tight;
+  }
+}

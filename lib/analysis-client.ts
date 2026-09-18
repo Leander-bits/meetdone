@@ -1,0 +1,36 @@
+import { analysisSchema, Meeting, MeetingAnalysis } from "./models";
+import { AnalysisError, AnalysisErrorCode, transcriptError } from "./analysis-contract";
+export async function requestAnalysis(
+  meeting: Meeting,
+  signal?: AbortSignal,
+): Promise<MeetingAnalysis> {
+  const invalid = transcriptError(meeting.transcript.text);
+  if (invalid) throw new AnalysisError(invalid);
+  try {
+    const response = await fetch("/api/analyze-meeting", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(55_000)])
+        : AbortSignal.timeout(55_000),
+      body: JSON.stringify({
+        requirements: meeting.requirements,
+        transcript: meeting.transcript,
+        templateId: meeting.templateId,
+      }),
+    });
+    const body = await response.json();
+    if (!response.ok)
+      throw new AnalysisError((body.error as AnalysisErrorCode) || "PROVIDER_ERROR");
+    const parsed = analysisSchema.safeParse(body.analysis);
+    if (!parsed.success) throw new AnalysisError("INVALID_OUTPUT");
+    return parsed.data;
+  } catch (error) {
+    if (error instanceof AnalysisError) throw error;
+    throw new AnalysisError(
+      error instanceof DOMException && ["AbortError", "TimeoutError"].includes(error.name)
+        ? "TIMEOUT"
+        : "PROVIDER_ERROR",
+    );
+  }
+}
