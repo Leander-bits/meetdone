@@ -1,79 +1,87 @@
-import { Meeting, MeetingAnalysis, MeetingTemplate, requirementKey } from "./models";
+import { Meeting, MeetingAnalysis, MeetingTemplate, Requirement, requirementKey } from "./models";
 import { getTemplate } from "./templates";
-
+import {
+  DemoLine,
+  launchDiscussion,
+  launchFollowUp,
+  retroDiscussion,
+  customerDiscussion,
+} from "./demo-transcripts";
 export type DemoScenario = {
   id: string;
-  templateId: MeetingTemplate["id"];
+  templateId: string;
   name: string;
   description: string;
   transcript: string;
   analysis: Omit<MeetingAnalysis, "id" | "transcriptRevision" | "requirementsRevision">;
 };
-const launchLines = [
-  "Maya · Product: We have evaluated Atlas readiness across Product, Engineering, and Sales using the submitted reports. The team agrees that the readiness assessment is positive, pending Sales input and the final call. Product is ready: onboarding and launch content are approved.",
-  "Alex · Engineering: Engineering is ready. Load tests passed. We reviewed launch risks; the rollback procedure and on-call coverage mitigate the remaining operational risk.",
-  "Maya · Product: Jordan from Sales is on the invite, but we have not heard their opinion. We discussed Go / No-Go; the final decision is still pending.",
-  "Maya · Product: Someone needs to send the launch announcement by 2026-09-24. We have not assigned an owner.",
-  "Alex · Engineering: I will publish the launch monitoring checklist. We have not agreed a deadline.",
-];
-function makeScenario(
-  templateId: MeetingTemplate["id"],
-  complete: boolean,
-  lines: string[],
-): DemoScenario {
-  const t = getTemplate(templateId);
+function makeScenario(templateId: string, complete: boolean, lines: DemoLine[]): DemoScenario {
+  const template = getTemplate(templateId)!;
   const id = `${templateId}-${complete ? "complete" : "incomplete"}`;
   const evidence = lines.map((line, i) => ({
-    id: `e${i + 1}`,
+    id: line.id,
     transcriptRevision: 1,
     segmentId: `line-${i * 2 + 1}`,
-    speaker: line.split(": ")[0],
-    quote: line.slice(line.indexOf(": ") + 2),
+    speaker: line.speaker,
+    quote: line.text,
   }));
-  const base = (r: (typeof t.requirements.items)[number], evidenceIndex = 0) => ({
+  const base = (r: Requirement, ids: string[]) => ({
     requirementId: r.id,
-    requirementKey: requirementKey(r, t.requirements.items),
-    evidenceIds: [`e${evidenceIndex + 1}`],
+    requirementKey: requirementKey(r, template.requirements.items),
+    evidenceIds: ids,
   });
-  const detail = (index: number) => evidence[index].quote;
+  const quote = (id: string) => evidence.find((e) => e.id === id)!.quote;
+  const assessment =
+    templateId === "launch" ? "assessment" : templateId === "retro" ? "lesson" : "progress";
+  const decision =
+    templateId === "launch" ? (complete ? "final-decision" : "decision-pending") : "decision";
+  const speakerEvidence: Record<string, string> = {
+    "l-product": "scope",
+    "l-engineering": "engineering",
+    "l-sales": complete ? "sales-opinion" : "sales-missing",
+    "r-lead": "lead-opinion",
+    "r-dev": "engineering",
+    "c-csm": "lead-opinion",
+    "c-client": "client-opinion",
+  };
   const analysis: DemoScenario["analysis"] = {
     provider: "demo",
     scenarioId: id,
     evidence,
-    goals: t.requirements.items
+    goals: template.requirements.items
       .filter((r) => r.kind === "goal")
-      .map((r) => ({ ...base(r), status: "complete", detail: detail(0) })),
-    conclusions: t.requirements.items
+      .map((r) => ({ ...base(r, [assessment]), status: "complete", detail: quote(assessment) })),
+    conclusions: template.requirements.items
       .filter((r) => r.kind === "conclusion")
-      .map((r) => ({ ...base(r), status: "complete", detail: detail(0) })),
-    topics: t.requirements.items
+      .map((r) => ({ ...base(r, [assessment]), status: "complete", detail: quote(assessment) })),
+    topics: template.requirements.items
       .filter((r) => r.kind === "topic" && r.level === "required")
-      .map((r) => ({
-        ...base(r, r.id === "l-topic-risks" ? 1 : 0),
-        status: "complete",
-        detail: detail(r.id === "l-topic-risks" ? 1 : 0),
-      })),
-    speakers: t.requirements.items
-      .filter((r) => r.kind === "speaker")
-      .map((r, i) => {
-        const index = templateId === "launch" && i === 2 ? (complete ? 5 : 2) : i;
-        return {
-          ...base(r, index),
-          status: r.id === "l-sales" && !complete ? "mentioned" : "opinion",
-          detail: detail(index),
-        };
-      }),
-    decisions: t.requirements.items
-      .filter((r) => r.kind === "decision")
       .map((r) => {
-        const index = templateId === "launch" ? (complete ? 6 : 2) : 2;
+        const anchor = r.id === "l-topic-risks" ? "risks" : assessment;
+        return { ...base(r, [anchor]), status: "complete", detail: quote(anchor) };
+      }),
+    speakers: template.requirements.items
+      .filter((r) => r.kind === "speaker")
+      .map((r) => {
+        const anchor = speakerEvidence[r.id];
+        const missingOpinion = r.id === "l-sales" && !complete;
         return {
-          ...base(r, index),
-          status: complete ? "decided" : "discussed",
-          detail: detail(index),
+          ...base(r, [anchor]),
+          status: missingOpinion ? "mentioned" : "opinion",
+          classification: missingOpinion ? "present_no_opinion" : "expressed_opinion",
+          detail: quote(anchor),
         };
       }),
-    actionItems: t.requirements.items
+    decisions: template.requirements.items
+      .filter((r) => r.kind === "decision")
+      .map((r) => ({
+        ...base(r, [decision]),
+        status: complete ? "decided" : "discussed",
+        classification: complete ? "decided" : "discussed_not_decided",
+        outcome: complete ? quote(decision) : null,
+        detail: quote(decision),
+      })),
+    actionItems: template.requirements.items
       .filter((r) => r.kind === "action")
       .map((r, i) => ({
         id: `${templateId}-action-${i}`,
@@ -83,18 +91,38 @@ function makeScenario(
           templateId === "launch"
             ? i === 0
               ? complete
-                ? "Jordan · Sales"
-                : ""
-              : "Alex · Engineering"
+                ? "Sun"
+                : null
+              : "Max"
             : templateId === "retro"
-              ? "Lee · Engineering"
-              : "Taylor · Customer success",
-        deadline: !complete && i === 1 ? "" : "2026-09-24",
+              ? "Jiaheng"
+              : "Alex",
+        deadline: !complete && i === 1 ? null : "2026-09-24",
         status: "open",
         source: "demo",
-        evidenceIds: [`e${templateId === "launch" ? (complete ? 8 + i : 4 + i) : 4}`],
+        evidenceIds: [
+          templateId === "launch"
+            ? i === 0
+              ? complete
+                ? "notice-owned"
+                : "notice"
+              : complete
+                ? "monitor-dated"
+                : "monitor"
+            : "action",
+        ],
       })),
-    unresolvedIssues: [],
+    unresolvedIssues:
+      templateId === "customer"
+        ? [
+            {
+              id: "list-sorting",
+              description: quote("feedback"),
+              blocking: false,
+              evidenceIds: ["feedback", "boundary"],
+            },
+          ]
+        : [],
   };
   return {
     id,
@@ -108,43 +136,29 @@ function makeScenario(
     description: complete
       ? "Discussion and commitments are captured."
       : "Four blockers to resolve before ending.",
-    transcript: lines.join("\n\n"),
+    transcript: lines.map((line) => `${line.speaker}: ${line.text}`).join("\n\n"),
     analysis,
   };
 }
-export const scenarios: DemoScenario[] = [
-  makeScenario("launch", false, launchLines),
-  makeScenario("launch", true, [
-    ...launchLines,
-    "Jordan · Sales: Sales is ready for launch. Training is complete, and I support a Go decision.",
-    "Maya · Product: With Product, Engineering, and Sales in agreement, the final decision is Go for the Atlas launch on 2026-09-25.",
-    "Jordan · Sales: I will own sending the launch announcement by 2026-09-24.",
-    "Alex · Engineering: I confirm the deadline for publishing the launch monitoring checklist is 2026-09-24.",
-  ]),
-  makeScenario("retro", true, [
-    "Sam · Team lead: We identified what helped and slowed delivery. Pairing helped us ship; large reviews delayed us. We agree that smaller reviews are the main lesson. I support trying them next sprint.",
-    "Lee · Engineering: I agree. In my view smaller pull requests will reduce review delays, and we should keep pairing.",
-    "Sam · Team lead: We decide to cap pull requests at one small change for the next sprint. Longer-term tooling can be discussed later.",
-    "Lee · Engineering: I will trial the agreed improvement by 2026-09-24 and report back.",
-  ]),
-  makeScenario("customer", true, [
-    "Taylor · Customer success: We reviewed milestone progress and customer blockers. Delivery is on track for pilot acceptance. We agree that the current delivery status is on track. I recommend proceeding with the pilot.",
-    "Casey · Customer: I agree that we are on track. The access blocker is resolved and I support the pilot milestone.",
-    "Taylor · Customer success: We agree on pilot acceptance on 2026-09-30, with five users completing the core workflow as acceptance criteria. Additional training needs can be reviewed later.",
-    "Taylor · Customer success: I will share the updated milestone plan by 2026-09-24.",
-  ]),
+export const scenarios = [
+  makeScenario("launch", false, launchDiscussion),
+  makeScenario("launch", true, [...launchDiscussion, ...launchFollowUp]),
+  makeScenario("retro", true, retroDiscussion),
+  makeScenario("customer", true, customerDiscussion),
 ];
 export function createMeeting(
   templateId: MeetingTemplate["id"],
   id: string,
   isDemo = false,
+  customTemplate?: MeetingTemplate,
 ): Meeting {
-  const template = getTemplate(templateId);
+  const template = customTemplate ?? getTemplate(templateId);
+  if (!template || template.id !== templateId) throw new Error("Template not found.");
   const now = new Date().toISOString();
   return {
     id,
     title: template.defaultTitle,
-    builtinTitle: true,
+    builtinTitle: !customTemplate,
     templateId,
     isDemo,
     createdAt: now,

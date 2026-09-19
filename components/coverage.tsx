@@ -1,9 +1,8 @@
 "use client";
 import { useI18n } from "@/components/language-provider";
-import { CheckCircle2, Circle, CircleDashed } from "lucide-react";
 import { Meeting, Requirement, kindLabels, requirementKey } from "@/lib/models";
 import { validDeadline } from "@/lib/rule-engine";
-import { EvidenceList, Notice, StatusBadge } from "./shared";
+import { EvidenceList, StatusBadge } from "./shared";
 
 export function coverageFor(
   m: Meeting,
@@ -72,32 +71,26 @@ export function coverageFor(
     detail: f?.detail,
   };
 }
-export function Coverage({ meeting: m, only }: { meeting: Meeting; only?: "decision" }) {
+export function Coverage({ meeting: m }: { meeting: Meeting }) {
   const { t: tx, label } = useI18n();
 
-  const kinds: Requirement["kind"][] = only
-    ? [only]
-    : ["goal", "conclusion", "topic", "speaker", "decision", "action"];
+  const kinds: Requirement["kind"][] = [
+    "goal",
+    "conclusion",
+    "topic",
+    "speaker",
+    "decision",
+    "action",
+  ];
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="section-title">{only ? tx("Decisions") : tx("Coverage overview")}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {only
-            ? tx("A discussion is not a decision. Look for an explicit outcome.")
-            : tx("What the discussion supports, measured against your requirements.")}
-        </p>
-      </div>
-      {!m.analysis && (
-        <Notice>{tx("Analyze the transcript to see coverage, or load a demo scenario.")}</Notice>
-      )}
       {kinds.map((kind) => {
         const items = m.requirements.items.filter((r) => r.kind === kind);
         const completeCount = items.filter((r) => coverageFor(m, r).complete).length;
         if (!items.length) return null;
         return (
-          <section key={kind} className="surface overflow-hidden">
-            <div className="flex items-center justify-between border-b bg-muted/40 px-5 py-3">
+          <section key={kind} className="border-t pt-3 first:border-0 first:pt-0">
+            <div className="flex items-center justify-between pb-2">
               <h3 className="text-sm font-semibold">{tx(kindLabels[kind])}</h3>
               <span className="text-xs text-muted-foreground">
                 {completeCount} / {items.length} {tx("complete")}
@@ -106,11 +99,6 @@ export function Coverage({ meeting: m, only }: { meeting: Meeting; only?: "decis
             <div className="divide-y">
               {items.map((r) => {
                 const status = coverageFor(m, r);
-                const Icon = status.complete
-                  ? CheckCircle2
-                  : status.label === "Partial"
-                    ? CircleDashed
-                    : Circle;
                 const deferred = m.gapResolutions.some(
                   (res) =>
                     res.type === "action" &&
@@ -118,11 +106,7 @@ export function Coverage({ meeting: m, only }: { meeting: Meeting; only?: "decis
                     res.gapId.includes(`:${r.id}`),
                 );
                 return (
-                  <div key={r.id} className="flex gap-3 px-5 py-4">
-                    <Icon
-                      size={17}
-                      className={`mt-0.5 shrink-0 ${status.complete ? "text-emerald-600" : "text-muted-foreground/60"}`}
-                    />
+                  <div key={r.id} className="py-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
@@ -152,9 +136,9 @@ export function Coverage({ meeting: m, only }: { meeting: Meeting; only?: "decis
                           {status.label}
                         </StatusBadge>
                       </div>
-                      {only && status.detail && (
-                        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                          {status.detail}
+                      {status.detail && (
+                        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                          {m.analysis?.provider === "demo" ? tx(status.detail) : status.detail}
                         </p>
                       )}
                       <EvidenceList

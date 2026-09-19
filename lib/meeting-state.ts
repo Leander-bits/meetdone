@@ -55,11 +55,16 @@ export function updateRequirements(m: Meeting, requirements: MeetingRequirements
       }),
   };
 }
-export function updateTranscript(m: Meeting, text: string): Meeting {
+export function updateTranscript(m: Meeting, text: string, fileName?: string): Meeting {
   const scenario = scenarios.find((s) => s.templateId === m.templateId && s.transcript === text);
   return {
     ...changed(m),
-    transcript: { text, revision: m.transcript.revision + 1, scenarioId: scenario?.id ?? null },
+    transcript: {
+      text,
+      revision: m.transcript.revision + 1,
+      scenarioId: scenario?.id ?? null,
+      ...(fileName ? { fileName } : {}),
+    },
     analysis: null,
     gapResolutions: [],
     actionItems: m.actionItems

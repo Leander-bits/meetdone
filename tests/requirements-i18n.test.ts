@@ -79,6 +79,9 @@ describe("dynamic requirement lists", () => {
   });
 });
 describe("bilingual built-ins", () => {
+  it("localizes all demo scenario choices", () => {
+    for (const scenario of scenarios) expect(zh[scenario.name], scenario.name).toBeTruthy();
+  });
   it("preserves demo quotes at the referenced transcript lines, including blank separators", () => {
     for (const scenario of scenarios)
       for (const evidence of scenario.analysis.evidence) {

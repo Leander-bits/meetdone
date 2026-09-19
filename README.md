@@ -6,7 +6,7 @@ MeetDone checks predefined goals, conclusions, topics, relevant speaker input, e
 
 ## Primary input: text transcript
 
-Type or paste meeting discussion, or load a built-in demo transcript. Text is the sole input in this phase. There is no audio/video/recording upload or live microphone input.
+Type or paste meeting discussion, import a UTF-8 `.txt` file, or load a built-in demo transcript. Text is the sole input in this phase. There is no audio/video/recording upload or live microphone input.
 
 ```mermaid
 flowchart LR
@@ -93,7 +93,7 @@ Evidence checks establish that text exists in the transcript. They cannot prove 
 
 ### Limits and failures
 
-- Transcript: **30–30,000 characters**; request body: **180,000 bytes** maximum.
+- Transcript: **30–50,000 characters**; request body: **650,000 bytes** maximum.
 - Requirements: **80 total**, with labels up to **500 characters**.
 - One request per button click, no automatic retries; output capped at 8,000 tokens.
 - Upstream timeout: **45 seconds**; client timeout: **55 seconds**.
@@ -108,7 +108,7 @@ No durable rate limiter or authentication is included in this take-home MVP. A p
 
 `lib/i18n.ts` is the central UI dictionary; `components/language-provider.tsx` is a small subscription-based language layer. UI messages, validation/errors, template names/descriptions, and built-in requirement/default text have both languages. The document language and title update as well.
 
-Built-in defaults carry provenance (`builtinKey` / `builtinTitle`), so they can display in either language without rewriting the underlying meeting. Editing a default removes that provenance. User-entered titles, requirements, transcripts, opinions, decisions, action descriptions, and exception reasons are **never automatically translated**. Transcript quotes and extracted details stay in their source language. The supplied demo transcripts/evidence remain their original English examples.
+Built-in defaults carry provenance (`builtinKey` / `builtinTitle`), so they can display in either language without rewriting the underlying meeting. Editing a default removes that provenance. User-entered titles, requirements, transcripts, opinions, decisions, action descriptions, and exception reasons are **never automatically translated**. Transcript quotes and extracted details stay in their source language. The supplied Bosch-style demo transcripts and their evidence remain in natural Chinese. These are fictional examples, not actual Bosch meeting records.
 
 ## Dynamic requirements
 
@@ -116,16 +116,20 @@ The existing `MeetingRequirements.items: Requirement[]` discriminated array is p
 
 Every section has **Add item** and **Remove** controls. The five required list types must each contain at least one item. The final remove button is disabled, and state/server validation enforces the same minimum. Decisions and agenda also support dynamic entries. Required, recommended, record-only, and explicit deferral policies are retained.
 
-Saving added/deleted/edited requirements increments the revision and clears analysis and completion results. Unsaved edits prevent ending checks until saved or discarded. Transcript edits immediately invalidate analysis and completion; action edits invalidate the completion check. New requirement IDs persist in localStorage.
+Saving added/deleted/edited requirements increments the revision and clears analysis and completion results. Requirements are edited in a focused form; save or cancel before returning to the meeting. Transcript edits immediately invalidate analysis and completion; action edits invalidate the completion check. New requirement IDs persist in localStorage.
 
 The workspace envelope is version 2 under the existing `meetdone.workspace.v1` key so Phase 1 data can be read and migrated. Legacy active lists missing a required type receive a default entry and their analysis is invalidated. Malformed storage falls back safely to a fresh demo; storage failures keep in-memory work and show a warning.
 
-## Reviewer walkthrough and demo fallback
+## Focused workspace and demo fallback
 
-1. Click **体验演示会议 / Try Demo Meeting**. Product Launch Scenario A is preloaded and analyzed.
-2. Click **准备结束会议 / Prepare to End Meeting**. Inspect the four blockers: no Sales opinion, no final Go / No-Go, a missing owner, and a missing deadline.
+The home page contains the value proposition, demo/create actions, and saved meetings. Creation is a single form with a template selector and dynamic requirement lists. The workspace has three areas: requirements, transcript, and meeting status. Evidence, detailed coverage, action editing, and advanced requirement options expand on demand.
+
+Only six meeting states appear: Not analyzed, Analyzing, Blocked, Ready to End, Ended with Exceptions, and Ended. Editing action items requires another end check. Ended meetings open directly to a compact summary; their original requirements and transcript remain available under Meeting record.
+
+1. Click **体验 Demo / Try Demo Meeting**. Product Launch Scenario A is preloaded and analyzed.
+2. Click **准备结束会议 / Prepare to End Meeting**. Inspect the four blockers: no input from Sun, no final Go / No-Go, a missing release-notice owner, and a missing monitoring-checklist deadline.
 3. Edit action ownership/dates and recheck. A follow-up cannot erase a non-deferrable decision blocker.
-4. Open **会议文本 / Transcript**, load **场景 B / Scenario B**, then click **使用演示分析 / Use Demo Analysis**.
+4. Expand **加载演示场景 / Load Demo Scenario** below the transcript, load **场景 B / Scenario B**, then click **使用演示分析 / Use Demo Analysis**.
 5. Prepare to end again, then generate the summary.
 6. Reset Demo and try **带例外结束 / End with Exception**. A reason is mandatory; readiness remains blocked.
 
@@ -135,19 +139,19 @@ Retrospective and Customer Progress templates also have complete demo examples w
 
 1. Configure `.env.local` and restart the dev server.
 2. Open the launch demo (or create a meeting and define its requirements).
-3. Open **会议文本 / Transcript**, paste a speaker-labeled transcript, and click **分析会议 / Analyze Meeting**.
-4. Check **AI 分析模式 / AI Analysis Mode**, coverage, exact evidence, decisions, and nullable action fields. Readiness updates through the deterministic rules.
+3. Paste a speaker-labeled transcript in **会议记录 / Transcript** and click **分析会议 / Analyze Meeting**.
+4. The status area shows **AI 分析 / AI Analysis** and any blockers. Expand evidence, analysis details, or action items as needed. Readiness updates through the deterministic rules.
 5. Click **准备结束会议 / Prepare to End Meeting** before ending. Editing the text requires a fresh analysis.
 
 Example for the default Product Launch requirements:
 
 ```text
-Maya · Product: 我们今天评估 Atlas 的产品、工程和销售发布准备情况，并决定是否发布。产品的引导流程和上线文案已完成，我支持发布。
-Alex · Engineering: 工程已通过压力测试，可以发布。我们讨论了上线风险；回滚流程和现场值班已安排好，可以应对主要风险。
-Jordan · Sales: 销售培训已完成，客户沟通材料已准备好。我代表销售支持本次发布。
-Maya · Product: 三方确认发布准备情况满足要求。最终决定是 Go，Atlas 于 2026-09-25 发布。
-Maya · Product: 由 Jordan 负责发送发布公告，截止日期是 2026-09-24。
-Alex · Engineering: Alex 负责发布上线监控清单，截止日期是 2026-09-24。
+Devi · Product: CE T4 Station Data Editor 的产品验收通过，我支持本次生产上线。
+Max · Engineering: 工程测试通过，回滚方案和值班安排已确认，我支持上线。
+Sun · Operations: 现场培训和发布窗口已确认，业务这边支持上线。
+Devi · Product: 我们一致确认当前版本具备生产上线条件。最终决定 Go，于 2026-09-25 上线。
+Sun · Operations: 上线通知由 Sun 负责，截止日期为 2026-09-24。
+Max · Engineering: 上线监控清单由 Max 负责，截止日期为 2026-09-24。
 ```
 
 ## File structure
@@ -169,6 +173,10 @@ components/
   ui/                               shadcn/ui components
 lib/
   models.ts, templates.ts, demo.ts   Typed models and built-in fixtures
+  demo-transcripts.ts                Four natural Chinese Bosch-style scenarios
+  custom-templates.ts                Separate versioned template persistence
+  transcript-import.ts               Strict UTF-8 decoding and import limits
+  live-transcription.ts              Isolated future streaming STT contract
   i18n.ts, requirements.ts           Dictionaries and dynamic-list constraints
   analysis-contract.ts               Input limits, schema, safe error codes
   analysis-provider.ts               Provider interface and MockAnalysisProvider
@@ -180,6 +188,28 @@ lib/
 tests/, e2e/                         Unit, route, provider, and browser tests
 .env.example                         Public variable names and defaults only
 ```
+
+## Meeting and template management
+
+Each meeting has a delete action on the home page. The confirmation names the meeting; cancel does not change localStorage. Deleting the last meeting leaves an empty workspace, rather than automatically recreating the demo. Try Demo Meeting can explicitly restore the launch demo.
+
+Create Meeting keeps the three built-ins. Create New Template clears the title and starts with exactly one empty goal, conclusion, topic, speaker input, and action output. Save as Template makes a separate custom copy; Template options lets you edit its name and requirements, save it, or confirm deletion. Built-ins are protected in both UI and persistence helpers.
+
+Custom templates use a separate versioned localStorage key, `meetdone.templates.v1`. Meetings store their own requirement snapshot, so editing or deleting a template cannot rewrite or delete an existing meeting. Custom template content is saved in the displayed language as user-owned text and never translated by switching the UI. The existing meeting storage version/key remains compatible.
+
+## TXT import
+
+Import .txt accepts UTF-8 text with an optional BOM, preserving line endings and displaying the filename after import and reload. Invalid extensions, nontext MIME types, binary control bytes, invalid UTF-8, unreadable files, and imports above 50,000 characters are rejected without replacing the current transcript. Imported text can be edited before analysis. Importing always clears the previous analysis/check.
+
+Oversized pasted/typed content is retained for editing with an explicit error and disabled analysis; it is never silently truncated. Shorten it to 50,000 characters or fewer before analysis. Filenames stay in browser storage and are not sent to the AI provider. The request body allowance covers Chinese UTF-8 and requirement labels as well as the transcript.
+
+## Live transcription preparation
+
+`lib/live-transcription.ts` defines a provider/session contract for streaming audio, final utterances, diarized speaker IDs, stop/abort, and connection errors. Its pure append helper accepts only finalized utterances, deduplicates IDs, applies explicit speaker-name mappings, and enforces the transcript limit. The prepared Deepgram provider is deliberately unavailable: the optional Live Transcription entry says coming soon and never asks for microphone permission or implies that recording works.
+
+Target flow: **Microphone → Streaming STT → Speaker Diarization → Live Transcript → existing analysis pipeline**. No transcription endpoint, capture, streaming transport, or recording UI is enabled in this phase. No new environment variable is needed for the delivered app; DeepSeek configuration is unchanged.
+
+To activate Deepgram later, provide a private server-side `DEEPGRAM_API_KEY`, implement a server endpoint for short-lived session authorization, connect the microphone transport, and test Chinese/English diarization, interim/final boundaries, reconnection, start/stop, speaker mapping, and browser permissions on real audio. The permanent API key must never reach browser code. Deepgram documents [temporary tokens](https://developers.deepgram.com/guides/fundamentals/token-based-authentication) and the [streaming speech API](https://developers.deepgram.com/reference/speech-to-text/listen-streaming). No Teams, Feishu, Zoom, or Google Meet API integration is included.
 
 ## Verification
 
@@ -199,13 +229,13 @@ $env:PLAYWRIGHT_CHANNEL = 'chrome'
 npm run test:e2e
 ```
 
-Browser tests start the production server; build first. Provider/route tests mock upstream HTTP; browser AI-success/failure tests mock the application endpoint. They validate contracts and UX without spending API credits. A live DeepSeek call requires your real API key and is not part of the automated suite.
+Browser tests start an isolated production server on port 3100; build first. Override the port with `PLAYWRIGHT_PORT` if needed. Provider/route tests mock upstream HTTP; browser AI-success/failure tests mock the application endpoint. They validate contracts and UX without spending API credits. A live DeepSeek call requires your real API key and is not part of the automated suite.
 
 ## Known limitations and future integrations
 
 - AI may misinterpret discussion even when its quoted evidence is real. Inspect important decisions and speaker input.
 - Speaker-labeled text and explicit ISO dates give the most reliable results. Unattributed speech and relative dates remain conservative/unknown.
 - localStorage is browser/origin-specific; there is no shared workspace, cross-device sync, authentication, or database. Concurrent tabs use the latest stored workspace.
-- Ended meetings preserve their state. Demo reset affects only the preloaded launch meeting.
+- Ended meetings preserve their state until the user confirms deletion. Demo reset affects only the preloaded launch meeting. Existing saved meetings are kept; use Reset Demo to replace an older sample with the new Bosch example.
 - No audio upload, video upload, screen recording upload, live microphone streaming, Zoom, Microsoft Teams, or Google Meet integration.
 - Future audio/live integrations would add **Audio / Live Meeting → Speech-to-Text → Transcript → Existing Analysis Pipeline**. They do not require moving readiness rules into the LLM.

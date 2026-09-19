@@ -7,7 +7,7 @@ import { minimumKinds, validRequirementLists } from "./requirements";
 export const STORAGE_KEY = "meetdone.workspace.v1";
 const storeSchema = z.object({
   version: z.union([z.literal(1), z.literal(2)]),
-  meetings: z.array(meetingSchema).min(1),
+  meetings: z.array(meetingSchema),
 });
 export type StorageLike = Pick<Storage, "getItem" | "setItem">;
 export function readMeetings(storage: StorageLike): {
@@ -24,7 +24,7 @@ export function readMeetings(storage: StorageLike): {
     )
       throw new Error("Invalid saved workspace");
     const meetings = parsed.data.meetings.map((m) => {
-      const template = getTemplate(m.templateId);
+      const template = getTemplate(m.templateId) ?? getTemplate("launch")!;
       // Repair Phase 1 lists that could be emptied. Preserve all existing user content.
       const missingKinds = minimumKinds.filter(
         (kind) => !m.requirements.items.some((r) => r.kind === kind),

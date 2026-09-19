@@ -45,15 +45,18 @@ describe("versioned local persistence", () => {
     expect(writeMeetings(storage, [meeting])).toBeNull();
     expect(readMeetings(storage).meetings).toEqual([meeting]);
   });
-  it.each([
-    "not json",
-    "{}",
-    '{"version":2,"meetings":[]}',
-    '{"version":1,"meetings":[{"id":"bad"}]}',
-  ])("safely falls back for invalid data %s", (raw) => {
-    const result = readMeetings(memoryStorage(raw));
-    expect(result.warning).toBeTruthy();
-    expect(result.meetings[0].id).toBe("demo-launch");
+  it.each(["not json", "{}", '{"version":1,"meetings":[{"id":"bad"}]}'])(
+    "safely falls back for invalid data %s",
+    (raw) => {
+      const result = readMeetings(memoryStorage(raw));
+      expect(result.warning).toBeTruthy();
+      expect(result.meetings[0].id).toBe("demo-launch");
+    },
+  );
+  it("preserves an empty workspace after the last meeting is deleted", () => {
+    const storage = memoryStorage();
+    writeMeetings(storage, []);
+    expect(readMeetings(storage)).toEqual({ meetings: [], warning: null });
   });
   it("handles denied storage reads and failed writes", () => {
     const denied = {

@@ -3,11 +3,12 @@ import { requirementsSchema } from "./models";
 import { validRequirementLists } from "./requirements";
 
 export const MIN_TRANSCRIPT_LENGTH = 30;
-export const MAX_TRANSCRIPT_LENGTH = 30_000;
-export const MAX_REQUEST_BYTES = 180_000;
+export const MAX_TRANSCRIPT_LENGTH = 50_000;
+// Includes UTF-8 Chinese, JSON escaping, and up to 80 requirement labels.
+export const MAX_REQUEST_BYTES = 650_000;
 export const analysisRequestSchema = z
   .object({
-    templateId: z.enum(["launch", "retro", "customer"]),
+    templateId: z.string().min(1).max(100),
     requirements: requirementsSchema.refine(validRequirementLists),
     transcript: z.object({
       text: z.string().max(MAX_TRANSCRIPT_LENGTH),

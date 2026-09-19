@@ -47,7 +47,7 @@ export function useI18n() {
     label: (r: Requirement) =>
       r.builtinKey === r.label ? translate(locale, r.builtinKey) : r.label,
     title: (m: Meeting) =>
-      m.builtinTitle && m.title === getTemplate(m.templateId).defaultTitle
+      m.builtinTitle && m.title === getTemplate(m.templateId)?.defaultTitle
         ? translate(locale, m.title)
         : m.title,
     setLocale: (next: Locale) => {

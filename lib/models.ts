@@ -23,7 +23,7 @@ export const requirementsSchema = z.object({
   items: z.array(requirementSchema),
 });
 export const templateSchema = z.object({
-  id: z.enum(["launch", "retro", "customer"]),
+  id: z.string().min(1).max(100),
   name: z.string(),
   description: z.string(),
   defaultTitle: z.string(),
@@ -169,7 +169,7 @@ export const meetingSchema = z.object({
   id: z.string(),
   title: z.string().min(1),
   builtinTitle: z.boolean().optional(),
-  templateId: z.enum(["launch", "retro", "customer"]),
+  templateId: z.string().min(1).max(100),
   isDemo: z.boolean(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -180,6 +180,7 @@ export const meetingSchema = z.object({
     text: z.string(),
     revision: z.number().int().positive(),
     scenarioId: z.string().nullable(),
+    fileName: z.string().optional(),
   }),
   analysis: analysisSchema.nullable(),
   actionItems: z.array(actionSchema),

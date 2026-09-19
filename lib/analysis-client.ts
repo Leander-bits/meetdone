@@ -15,13 +15,29 @@ export async function requestAnalysis(
         : AbortSignal.timeout(55_000),
       body: JSON.stringify({
         requirements: meeting.requirements,
-        transcript: meeting.transcript,
+        transcript: {
+          text: meeting.transcript.text,
+          revision: meeting.transcript.revision,
+          scenarioId: meeting.transcript.scenarioId,
+        },
         templateId: meeting.templateId,
       }),
     });
     const body = await response.json();
-    if (!response.ok)
-      throw new AnalysisError((body.error as AnalysisErrorCode) || "PROVIDER_ERROR");
+    if (!response.ok) {
+      const allowed: AnalysisErrorCode[] = [
+        "EMPTY_TRANSCRIPT",
+        "TRANSCRIPT_TOO_SHORT",
+        "TRANSCRIPT_TOO_LONG",
+        "INVALID_REQUEST",
+        "MISSING_API_KEY",
+        "TIMEOUT",
+        "PROVIDER_ERROR",
+        "INVALID_OUTPUT",
+        "STALE_ANALYSIS",
+      ];
+      throw new AnalysisError(allowed.includes(body?.error) ? body.error : "PROVIDER_ERROR");
+    }
     const parsed = analysisSchema.safeParse(body.analysis);
     if (!parsed.success) throw new AnalysisError("INVALID_OUTPUT");
     return parsed.data;

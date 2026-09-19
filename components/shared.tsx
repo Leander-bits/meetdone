@@ -1,9 +1,10 @@
 "use client";
 import { useI18n } from "@/components/language-provider";
 import Link from "next/link";
-import { Check, CheckCheck, CircleHelp, HardDrive, Info } from "lucide-react";
+import { CheckCheck, Info } from "lucide-react";
 import { Evidence, Meeting } from "@/lib/models";
 import { Badge } from "@/components/ui/badge";
+import { evaluateMeeting } from "@/lib/meeting-state";
 import { cn } from "@/lib/utils";
 
 export function Brand() {
@@ -19,25 +20,17 @@ export function Brand() {
         <CheckCheck size={21} />
       </span>
       MeetDone
-      <span className="ml-1 rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {tx("Demo")}
-      </span>
     </Link>
   );
 }
 export function AppHeader() {
-  const { t: tx, locale, setLocale } = useI18n();
+  const { locale, setLocale } = useI18n();
 
   return (
     <header className="border-b bg-white">
       <div className="mx-auto flex h-17 max-w-[1440px] items-center justify-between px-5 sm:px-9">
         <Brand />
         <div className="flex items-center gap-3">
-          <span className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">
-            <HardDrive size={14} />{" "}
-            <span className="hidden sm:inline">{tx("Your browser. Your workspace.")}</span>
-            <span className="sm:hidden">{tx("Saved locally")}</span>
-          </span>
           <div
             className="flex items-center rounded-md border bg-muted/50 p-0.5"
             aria-label="中文 / EN"
@@ -91,22 +84,12 @@ export function StatusBadge({
     </Badge>
   );
 }
-export function LifecycleBadge({ lifecycle }: { lifecycle: Meeting["lifecycle"] }) {
-  const { t: tx } = useI18n();
-
-  return (
-    <StatusBadge
-      tone={
-        lifecycle === "ended_with_exceptions" ? "warn" : lifecycle === "ended" ? "good" : "neutral"
-      }
-    >
-      {lifecycle === "active"
-        ? tx("In progress")
-        : lifecycle === "ended"
-          ? tx("Ended")
-          : tx("Ended with Exceptions")}
-    </StatusBadge>
-  );
+export function meetingStatus(m: Meeting, pending = false): string {
+  if (m.lifecycle === "ended_with_exceptions") return "Ended with Exceptions";
+  if (m.lifecycle === "ended") return "Ended";
+  if (pending) return "Analyzing";
+  if (!m.analysis) return "Not analyzed";
+  return evaluateMeeting(m).readiness === "READY" ? "Ready to End" : "Blocked";
 }
 export function EvidenceList({ ids, evidence }: { ids: string[]; evidence: Evidence[] }) {
   const { t: tx } = useI18n();
@@ -116,7 +99,7 @@ export function EvidenceList({ ids, evidence }: { ids: string[]; evidence: Evide
   return (
     <details className="mt-2 text-xs">
       <summary className="w-fit text-muted-foreground hover:text-primary">
-        {tx("View evidence")} · {items.length} {items.length === 1 ? tx("excerpt") : tx("excerpts")}
+        {tx("View evidence")}
       </summary>
       <div className="mt-2 space-y-2">
         {items.map((e) => (
@@ -126,58 +109,11 @@ export function EvidenceList({ ids, evidence }: { ids: string[]; evidence: Evide
           >
             <div className="mb-1 font-semibold">
               {e.speaker || tx("Unknown speaker")}
-              <span className="ml-2 font-normal text-muted-foreground">
-                {e.segmentId} · {tx("transcript v")}
-                {e.transcriptRevision}
-              </span>
+              <span className="ml-2 font-normal text-muted-foreground">{e.segmentId}</span>
             </div>
             “{e.quote}”
           </blockquote>
         ))}
-      </div>
-    </details>
-  );
-}
-export function AboutDemo() {
-  const { t: tx } = useI18n();
-
-  return (
-    <details className="surface text-sm">
-      <summary className="flex items-center gap-2 p-4 font-medium">
-        <CircleHelp size={16} className="text-muted-foreground" />
-        {tx("About this demo")}
-        <span className="ml-auto text-xs font-normal text-muted-foreground">
-          {tx("What works today")}
-        </span>
-      </summary>
-      <div className="grid gap-5 border-t p-5 text-xs leading-relaxed md:grid-cols-3">
-        <div>
-          <p className="mb-2 flex items-center gap-1.5 font-semibold">
-            <Check size={14} className="text-primary" />
-            {tx("Implemented")}
-          </p>
-          <p className="text-muted-foreground">
-            {tx(
-              "Meeting templates, requirement editing, text transcript input, AI extraction, coverage, deterministic readiness checks, actions, exceptions, and summaries.",
-            )}
-          </p>
-        </div>
-        <div>
-          <p className="mb-2 font-semibold">{tx("Mock")}</p>
-          <p className="text-muted-foreground">
-            {tx(
-              "Demo fixtures always work without an API key. AI analysis is optional and clearly labeled.",
-            )}
-          </p>
-        </div>
-        <div>
-          <p className="mb-2 font-semibold">{tx("Not yet implemented")}</p>
-          <p className="text-muted-foreground">
-            {tx(
-              "Audio, video, screen recordings, live microphones, Zoom, Teams, and Google Meet are not supported. Future speech-to-text can feed this transcript pipeline.",
-            )}
-          </p>
-        </div>
       </div>
     </details>
   );

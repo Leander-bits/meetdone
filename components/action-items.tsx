@@ -3,33 +3,28 @@ import { useMeetingPresentation } from "./meeting-presentation";
 import { useI18n } from "@/components/language-provider";
 import { Plus, Trash2 } from "lucide-react";
 import { ActionItem, Meeting } from "@/lib/models";
-import { validDeadline } from "@/lib/rule-engine";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { EvidenceList, Notice, StatusBadge } from "./shared";
+import { EvidenceList } from "./shared";
 
 export function ActionItems({
   meeting: m,
   onChange,
+  disabled: busy = false,
 }: {
   meeting: Meeting;
+  disabled?: boolean;
   onChange: (items: ActionItem[]) => void;
 }) {
   const { t: tx, label } = useI18n();
   const { actionTitle } = useMeetingPresentation(m);
 
-  const disabled = m.lifecycle !== "active";
+  const disabled = busy || m.lifecycle !== "active";
   const patch = (id: string, change: Partial<ActionItem>) =>
     onChange(m.actionItems.map((a) => (a.id === id ? { ...a, ...change, source: "host" } : a)));
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="section-title">{tx("Action items")}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {tx("A clear commitment has an owner and a deadline.")}
-          </p>
-        </div>
+      <div className="flex justify-end">
         {!disabled && (
           <Button
             variant="outline"
@@ -55,33 +50,20 @@ export function ActionItems({
         )}
       </div>
       {m.actionItems.length === 0 && (
-        <Notice>
-          {tx(
-            "No action items yet. Analyze a transcript or add an action linked to a required output.",
-          )}
-        </Notice>
+        <p className="text-sm text-muted-foreground">{tx("No action items captured.")}</p>
       )}
       <div className="space-y-4">
         {m.actionItems.map((a, i) => (
-          <section className="surface p-5" key={a.id}>
+          <section className="border-t py-4 first:border-0 first:pt-0" key={a.id}>
             <div className="mb-4 flex items-center justify-between">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="eyebrow">
+                <span className="text-xs font-medium text-muted-foreground">
                   {tx("Action")}
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <StatusBadge
-                  tone={
-                    a.description.trim() && (a.owner ?? "").trim() && validDeadline(a.deadline)
-                      ? "good"
-                      : "warn"
-                  }
-                >
-                  {a.description.trim() && (a.owner ?? "").trim() && validDeadline(a.deadline)
-                    ? tx("Assigned")
-                    : tx("Incomplete commitment")}
-                </StatusBadge>
-                {a.gapId && <StatusBadge>{tx("Linked to gap")}</StatusBadge>}
+                {a.gapId && (
+                  <span className="text-xs text-muted-foreground">{tx("Linked to gap")}</span>
+                )}
               </div>
               {!disabled && (
                 <Button
@@ -103,7 +85,7 @@ export function ActionItems({
                 onChange={(e) => patch(a.id, { description: e.target.value })}
               />
             </label>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label>
                 <span className="field-label">
                   {tx("Owner")}
@@ -148,38 +130,28 @@ export function ActionItems({
                 </select>
               </label>
             </div>
-            <label className="mt-4 block">
-              <span className="field-label">{tx("Required action output")}</span>
-              <select
-                aria-label={`${tx("Action")} ${i + 1} ${tx("Required action output")}`}
-                className="native-select"
-                disabled={disabled || !!a.gapId}
-                value={a.requirementId ?? ""}
-                onChange={(e) => patch(a.id, { requirementId: e.target.value || undefined })}
-              >
-                <option value="">{tx("Additional follow-up")}</option>
-                {m.requirements.items
-                  .filter((r) => r.kind === "action")
-                  .map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {label(r)}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            {a.gapId && (
-              <p className="mt-3 break-all text-xs text-muted-foreground">
-                {tx("Follow-up for")}: {a.gapId}.{" "}
-                {tx("The link is preserved even if the gap is resolved.")}
-              </p>
-            )}
-            <div className="mt-3 text-[11px] text-muted-foreground">
-              {a.source === "demo"
-                ? tx("Extracted from demo transcript")
-                : a.source === "ai"
-                  ? tx("Extracted by AI")
-                  : tx("Added or edited by host")}
-            </div>
+            <details className="mt-3 text-xs text-muted-foreground">
+              <summary className="w-fit">{tx("Required action output")}</summary>
+              <label className="mt-2 block">
+                <span className="field-label">{tx("Required action output")}</span>
+                <select
+                  aria-label={`${tx("Action")} ${i + 1} ${tx("Required action output")}`}
+                  className="native-select"
+                  disabled={disabled || !!a.gapId}
+                  value={a.requirementId ?? ""}
+                  onChange={(e) => patch(a.id, { requirementId: e.target.value || undefined })}
+                >
+                  <option value="">{tx("Additional follow-up")}</option>
+                  {m.requirements.items
+                    .filter((r) => r.kind === "action")
+                    .map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {label(r)}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </details>
             <EvidenceList ids={a.evidenceIds} evidence={m.analysis?.evidence ?? []} />
           </section>
         ))}

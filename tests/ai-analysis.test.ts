@@ -131,6 +131,15 @@ describe("server analysis route", () => {
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({ error: "MISSING_API_KEY" });
   });
+  it("accepts a 50,000-character Chinese transcript with a custom template at the API boundary", async () => {
+    vi.stubEnv("DEEPSEEK_API_KEY", "");
+    const value = input();
+    value.templateId = "custom-production-review";
+    value.transcript.text = "中".repeat(50_000);
+    const response = await POST(request(value));
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: "MISSING_API_KEY" });
+  });
   it("keeps the key server-side and returns validated analysis, never an LLM completion check", async () => {
     vi.stubEnv("DEEPSEEK_API_KEY", "test-secret-key");
     const fetcher = vi.fn().mockResolvedValue(reply());
