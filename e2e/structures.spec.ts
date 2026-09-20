@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
-import { configuration, details, english, saved } from "./helpers";
+import { pointerReorder, keyboardReorder, configuration, details, english, saved } from "./helpers";
 
-test("native speaker dragging and reset work alongside keyboard controls", async ({ page }) => {
+test("speaker pointer dragging and reset work alongside keyboard controls", async ({ page }) => {
   await english(page);
   await details(page);
   await page.getByRole("button", { name: "Add participant", exact: true }).click();
@@ -12,7 +12,7 @@ test("native speaker dragging and reset work alongside keyboard controls", async
   await page.getByRole("button", { name: "Speaker Sequence", exact: true }).click();
   const rows = page.locator('[data-sortable^="speakers/"]');
   await rows.nth(1).evaluate((el) => el.scrollIntoView({ block: "center" }));
-  await rows.first().locator('[draggable="true"]').dragTo(rows.nth(1));
+  await pointerReorder(page, rows.first(), rows.nth(1));
   await expect(rows.first()).toContainText("max");
   await expect(rows.first().locator("[data-item-number]").first()).toHaveText("1.");
   await expect(rows.nth(1).locator("[data-item-number]").first()).toHaveText("2.");
@@ -46,9 +46,14 @@ test("timeline resizing, adding and keyboard reordering preserve full duration",
   await expect(page.getByRole("slider", { name: "Duration 1", exact: true })).toHaveValue("10");
   await page.getByRole("button", { name: "Add segment", exact: true }).click();
   await page.getByRole("textbox", { name: "Segment 6", exact: true }).fill("Q&A");
-  await page.getByRole("button", { name: "Move up 6", exact: true }).click();
+  await keyboardReorder(
+    page,
+    page.locator('[data-sortable^="segments/"]').nth(5),
+    page.locator('[data-sortable^="segments/"]').nth(4),
+    "ArrowUp",
+  );
   await expect(page.getByRole("textbox", { name: "Segment 5", exact: true })).toHaveValue("Q&A");
-  await page.locator("[data-sortable]").first().getByText("Recommended goals").click();
+  await page.locator("[data-sortable]").first().getByText("Goals", { exact: true }).click();
   await expect(
     page
       .locator("[data-sortable]")
@@ -70,10 +75,8 @@ test("speaker roles, optionality and speaking order are stored", async ({ page }
   await page
     .getByRole("combobox", { name: "Role: zhaojiaheng", exact: true })
     .selectOption("Engineering");
-  await page.getByRole("checkbox", { name: "Required Speaker", exact: true }).uncheck();
-  await expect(
-    page.getByRole("checkbox", { name: "Optional Speaker", exact: true }),
-  ).not.toBeChecked();
+  await page.getByRole("checkbox", { name: "Required", exact: true }).uncheck();
+  await expect(page.getByRole("checkbox", { name: "Required", exact: true })).not.toBeChecked();
   await page.getByRole("button", { name: "Create Meeting", exact: true }).click();
   const m = (await saved(page))[0];
   expect(m.participants[0].role).toBe("Engineering");
@@ -87,7 +90,12 @@ test("custom stages join the sequence immediately and survive reset", async ({ p
   await configuration(page, "Project Retrospective");
   await page.getByRole("button", { name: "Add stage", exact: true }).click();
   await page.getByRole("textbox", { name: "Stage 6", exact: true }).fill("Team questions");
-  await page.getByRole("button", { name: "Move up 6", exact: true }).click();
+  await keyboardReorder(
+    page,
+    page.locator('[data-sortable^="stages/"]').nth(5),
+    page.locator('[data-sortable^="stages/"]').nth(4),
+    "ArrowUp",
+  );
   await expect(page.getByRole("textbox", { name: "Stage 5", exact: true })).toHaveValue(
     "Team questions",
   );

@@ -238,7 +238,7 @@ test("requirement edits invalidate analysis and preserve user text across langua
   await page.goto("/meetings/demo-launch");
   await analyzeSample(page);
   await page.getByRole("button", { name: "Edit", exact: true }).click();
-  await page.getByRole("button", { name: "Add goal", exact: true }).first().click();
+  await page.getByRole("button", { name: "Add Goal", exact: true }).first().click();
   await page.getByLabel("Goal 2", { exact: true }).fill("不要自动翻译此目标");
   await page.getByRole("button", { name: "Save requirements", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Not analyzed");

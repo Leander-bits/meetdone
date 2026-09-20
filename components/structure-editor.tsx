@@ -1,16 +1,6 @@
 "use client";
-import { useState, type ReactNode } from "react";
-import {
-  ArrowDown,
-  ArrowUp,
-  GripVertical,
-  Clock3,
-  Users,
-  ListOrdered,
-  Grid2X2,
-  Plus,
-  Trash2,
-} from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, Clock3, Users, ListOrdered, Grid2X2, Plus, Trash2 } from "lucide-react";
 import {
   GoalInput,
   MeetingStructure,
@@ -32,6 +22,7 @@ import {
 import { useI18n } from "./language-provider";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { SortableList, SortableRow } from "./sortable";
 import { ItemNumber } from "./requirement-controls";
 
 export function MeetingGoalsEditor({
@@ -91,7 +82,9 @@ export function MeetingGoalsEditor({
       </div>
       <Button
         className="mt-2"
-        size="sm"
+        size="icon"
+        title={tx("Add Goal")}
+        aria-label={tx("Add Goal")}
         variant="ghost"
         disabled={goals.length >= 20}
         onClick={() =>
@@ -108,13 +101,12 @@ export function MeetingGoalsEditor({
         }
       >
         <Plus size={14} />
-        {tx("Add goal")}
       </Button>
     </section>
   );
 }
 
-function OptionalGoals({
+function StructureGoals({
   goals,
   onChange,
 }: {
@@ -125,7 +117,7 @@ function OptionalGoals({
   return (
     <div className="mt-3">
       <p className="text-xs text-muted-foreground">
-        {tx("Recommended goals")}{" "}
+        {tx("Goals")}{" "}
         {goals.filter((g) => g.text.trim()).length > 0 &&
           `(${goals.filter((g) => g.text.trim()).length})`}
       </p>
@@ -134,8 +126,15 @@ function OptionalGoals({
           <div key={g.id} className="flex gap-1">
             <ItemNumber index={i} letters />
             <Input
-              aria-label={`${tx("Recommended goal")} ${i + 1}`}
-              placeholder={tx("Optional")}
+              aria-label={`${tx("Goal")} ${i + 1}`}
+              placeholder={tx(
+                [
+                  "e.g. Confirm launch risks",
+                  "e.g. Review customer feedback",
+                  "e.g. Decide whether to release",
+                ][i % 3],
+              )}
+              className="placeholder:text-muted-foreground/60"
               maxLength={500}
               value={g.builtinKey === g.text ? tx(g.text) : g.text}
               onChange={(e) =>
@@ -161,99 +160,14 @@ function OptionalGoals({
       </div>
       <Button
         variant="ghost"
-        size="sm"
+        size="icon"
+        title={tx("Add Goal")}
+        aria-label={tx("Add Goal")}
         disabled={goals.length >= 5}
         onClick={() => onChange([...goals, { id: crypto.randomUUID(), text: "" }])}
       >
-        {tx("Add goal")}
+        <Plus size={14} />
       </Button>
-    </div>
-  );
-}
-
-// Native dragging plus explicit movement buttons keeps ordering usable by keyboard,
-// screen readers and touch devices without relying on precision dragging.
-function SortableRow({
-  id,
-  index,
-  count,
-  onMove,
-  children,
-}: {
-  id: string;
-  index: number;
-  count: number;
-  onMove: (from: number, to: number) => void;
-  children: ReactNode;
-}) {
-  const { t: tx } = useI18n();
-  const [over, setOver] = useState(false);
-  const [dragging, setDragging] = useState(false);
-  return (
-    <div
-      data-sortable={id}
-      className={`rounded-lg border bg-white p-3 transition-colors ${over ? "border-primary bg-primary/5" : "border-border"} ${dragging ? "opacity-50" : ""}`}
-      onDragOver={(e) => {
-        if (e.dataTransfer.types.includes("application/meetdone-order")) {
-          e.preventDefault();
-          setOver(true);
-        }
-      }}
-      onDragLeave={() => setOver(false)}
-      onDrop={(e) => {
-        const payload = e.dataTransfer.getData("application/meetdone-order");
-        if (payload) {
-          e.preventDefault();
-          e.stopPropagation();
-          const data = JSON.parse(payload);
-          if (data.group === id.split("/")[0]) onMove(data.index, index);
-        }
-        setOver(false);
-      }}
-    >
-      <div className="flex items-start gap-2">
-        <span
-          draggable
-          onDragStart={(e) => {
-            e.stopPropagation();
-            e.dataTransfer.setData(
-              "application/meetdone-order",
-              JSON.stringify({ index, group: id.split("/")[0] }),
-            );
-            e.dataTransfer.effectAllowed = "move";
-            setDragging(true);
-          }}
-          onDragEnd={() => setDragging(false)}
-          className="mt-2 cursor-grab text-muted-foreground"
-          aria-hidden="true"
-        >
-          <GripVertical size={16} className="pointer-events-none" />
-        </span>
-        <ItemNumber index={index} />
-        <div className="min-w-0 flex-1">{children}</div>
-        <div className="flex shrink-0 flex-col">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            disabled={index === 0}
-            aria-label={`${tx("Move up")} ${index + 1}`}
-            onClick={() => onMove(index, index - 1)}
-          >
-            <ArrowUp size={13} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            disabled={index === count - 1}
-            aria-label={`${tx("Move down")} ${index + 1}`}
-            onClick={() => onMove(index, index + 1)}
-          >
-            <ArrowDown size={13} />
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }
@@ -273,7 +187,7 @@ export function StructureEditor({
   duration: number;
   template?: MeetingTemplate;
 }) {
-  const { t: tx } = useI18n();
+  const { t: tx, locale } = useI18n();
   const icons = { time: Clock3, speaker: Users, stages: ListOrdered, matrix: Grid2X2 };
   const [selectedPerson, setSelectedPerson] = useState("");
   const stageUpdate = (id: string, patch: Partial<Stage>) => {
@@ -310,18 +224,6 @@ export function StructureEditor({
             className="native-select !w-40"
             value={p.role}
             onChange={(e) => {
-              if (s?.type === "speaker") {
-                const remaining = s.requiredSpeakerIds.filter((id) => id !== p.id);
-                onChange({
-                  ...s,
-                  requiredSpeakerIds: roleIsRequired(
-                    template,
-                    e.target.value as Participant["role"],
-                  )
-                    ? [...remaining, p.id]
-                    : remaining,
-                });
-              }
               onParticipantsChange(
                 participants.map((x) =>
                   x.id === p.id
@@ -365,7 +267,7 @@ export function StructureEditor({
         })}
       </div>
       {s?.type === "time" && (
-        <div className="flow-enter space-y-3">
+        <div className="flow-enter space-y-3" data-structure-editor="time">
           <div className="flex justify-between text-sm">
             <span>{tx("Timeline")}</span>
             <span>
@@ -386,67 +288,68 @@ export function StructureEditor({
               </div>
             ))}
           </div>
-          {s.segments.map((seg, i) => (
-            <SortableRow
-              key={seg.id}
-              id={`segments/${seg.id}`}
-              index={i}
-              count={s.segments.length}
-              onMove={(from, to) => onChange({ ...s, segments: moveItem(s.segments, from, to) })}
-            >
-              <div className="flex flex-wrap items-center gap-3">
-                <Input
-                  className="max-w-56"
-                  aria-label={`${tx("Segment")} ${i + 1}`}
-                  value={seg.builtinKey === seg.name ? tx(seg.name) : seg.name}
-                  onChange={(e) =>
+          <SortableList
+            ids={s.segments.map((seg) => `segments/${seg.id}`)}
+            onMove={(from, to) => onChange({ ...s, segments: moveItem(s.segments, from, to) })}
+          >
+            {s.segments.map((seg, i) => (
+              <SortableRow key={seg.id} id={`segments/${seg.id}`} index={i}>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Input
+                    className="max-w-56"
+                    aria-label={`${tx("Segment")} ${i + 1}`}
+                    value={seg.builtinKey === seg.name ? tx(seg.name) : seg.name}
+                    onChange={(e) =>
+                      onChange({
+                        ...s,
+                        segments: s.segments.map((x) =>
+                          x.id === seg.id
+                            ? { ...x, name: e.target.value, builtinKey: undefined }
+                            : x,
+                        ),
+                      })
+                    }
+                  />
+                  <span className="text-sm tabular-nums">
+                    {seg.minutes} {tx("minutes")}
+                  </span>
+                  <input
+                    className="min-w-24 flex-1 accent-primary"
+                    aria-label={`${tx("Duration")} ${i + 1}`}
+                    type="range"
+                    min={5}
+                    max={duration - (s.segments.length - 1) * 5}
+                    step={5}
+                    value={seg.minutes}
+                    onChange={(e) =>
+                      onChange({
+                        ...s,
+                        segments: resizeSegment(s.segments, seg.id, Number(e.target.value)),
+                      })
+                    }
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={s.segments.length === 1}
+                    aria-label={`${tx("Remove segment")} ${i + 1}`}
+                    onClick={() => onChange({ ...s, segments: removeSegment(s.segments, seg.id) })}
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                </div>
+                <StructureGoals
+                  goals={seg.goals}
+                  onChange={(goals) =>
                     onChange({
                       ...s,
-                      segments: s.segments.map((x) =>
-                        x.id === seg.id ? { ...x, name: e.target.value, builtinKey: undefined } : x,
-                      ),
+                      segments: s.segments.map((x) => (x.id === seg.id ? { ...x, goals } : x)),
                     })
                   }
                 />
-                <span className="text-sm tabular-nums">
-                  {seg.minutes} {tx("minutes")}
-                </span>
-                <input
-                  className="min-w-24 flex-1 accent-primary"
-                  aria-label={`${tx("Duration")} ${i + 1}`}
-                  type="range"
-                  min={5}
-                  max={duration - (s.segments.length - 1) * 5}
-                  step={5}
-                  value={seg.minutes}
-                  onChange={(e) =>
-                    onChange({
-                      ...s,
-                      segments: resizeSegment(s.segments, seg.id, Number(e.target.value)),
-                    })
-                  }
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  disabled={s.segments.length === 1}
-                  aria-label={`${tx("Remove segment")} ${i + 1}`}
-                  onClick={() => onChange({ ...s, segments: removeSegment(s.segments, seg.id) })}
-                >
-                  <Trash2 size={14} />
-                </Button>
-              </div>
-              <OptionalGoals
-                goals={seg.goals}
-                onChange={(goals) =>
-                  onChange({
-                    ...s,
-                    segments: s.segments.map((x) => (x.id === seg.id ? { ...x, goals } : x)),
-                  })
-                }
-              />
-            </SortableRow>
-          ))}
+              </SortableRow>
+            ))}
+          </SortableList>
           <Button
             variant="ghost"
             size="sm"
@@ -464,59 +367,89 @@ export function StructureEditor({
         </div>
       )}
       {s?.type === "speaker" && (
-        <div className="flow-enter space-y-3">
-          {roleFields}
-          <div className="flex flex-wrap gap-2">
-            {s.speakerOrder.map((id) => {
-              const p = participants.find((p) => p.id === id);
-              return (
-                p && (
-                  <span key={id} className="rounded-full bg-primary/10 px-3 py-1 text-xs">
-                    {p.name}（{p.roleLabel ?? tx(p.role)}）
-                  </span>
-                )
-              );
-            })}
-          </div>
-          {s.speakerOrder.map((id, i) => {
-            const p = participants.find((p) => p.id === id);
-            return (
-              p && (
-                <SortableRow
-                  key={id}
-                  id={`speakers/${id}`}
-                  index={i}
-                  count={s.speakerOrder.length}
-                  onMove={(from, to) =>
-                    onChange({ ...s, speakerOrder: moveItem(s.speakerOrder, from, to) })
-                  }
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2 py-1">
-                    <span className="text-sm">
-                      {p.name}（{p.roleLabel ?? tx(p.role)}）
-                    </span>
-                    <label className="flex items-center gap-2 text-xs">
-                      <input
-                        type="checkbox"
-                        checked={s.requiredSpeakerIds.includes(id)}
-                        onChange={(e) =>
-                          onChange({
-                            ...s,
-                            requiredSpeakerIds: e.target.checked
-                              ? [...s.requiredSpeakerIds, id]
-                              : s.requiredSpeakerIds.filter((x) => x !== id),
-                          })
-                        }
-                      />
-                      {tx(
-                        s.requiredSpeakerIds.includes(id) ? "Required Speaker" : "Optional Speaker",
+        <div
+          className="flow-enter speaker-flow-container space-y-3"
+          data-structure-editor="speaker"
+        >
+          <SortableList
+            ids={s.speakerOrder.map((id) => `speakers/${id}`)}
+            onMove={(from, to) =>
+              onChange({ ...s, speakerOrder: moveItem(s.speakerOrder, from, to) })
+            }
+          >
+            <div className="speaker-flow" data-speaker-flow>
+              {s.speakerOrder.map((id, i) => {
+                const p = participants.find((p) => p.id === id);
+                return (
+                  p && (
+                    <SortableRow key={id} id={`speakers/${id}`} index={i} flow>
+                      <div
+                        className={`speaker-node mx-auto flex h-24 w-24 items-center justify-center rounded-full border-2 p-2 text-center text-sm font-medium break-words ${s.requiredSpeakerIds.includes(id) ? "border-primary/60 bg-primary/5" : "border-border bg-white"}`}
+                        data-speaker-node
+                        title={p.name}
+                      >
+                        <span className="line-clamp-3 break-all">{p.name}</span>
+                      </div>
+                      {i < s.speakerOrder.length - 1 && (
+                        <ArrowRight
+                          data-speaker-arrow
+                          data-from={id}
+                          data-to={s.speakerOrder[i + 1]}
+                          aria-hidden="true"
+                          className="speaker-arrow absolute text-muted-foreground/60"
+                          size={18}
+                        />
                       )}
-                    </label>
-                  </div>
-                </SortableRow>
-              )
-            );
-          })}
+                      <div className="mx-auto mt-3 flex w-36 max-w-full flex-col gap-2">
+                        <select
+                          aria-label={`${tx("Role")}: ${p.name}`}
+                          className="native-select !text-xs"
+                          value={p.role}
+                          onChange={(e) =>
+                            onParticipantsChange(
+                              participants.map((x) =>
+                                x.id === id
+                                  ? {
+                                      ...x,
+                                      role: e.target.value as Participant["role"],
+                                      roleLabel: undefined,
+                                    }
+                                  : x,
+                              ),
+                            )
+                          }
+                        >
+                          {["Product", "Engineering", "Sales", "Customer", "Other"].map((role) => (
+                            <option key={role} value={role}>
+                              {tx(role)}
+                            </option>
+                          ))}
+                        </select>
+                        <label
+                          className={`flex items-center justify-center gap-2 rounded px-2 py-1 text-xs ${s.requiredSpeakerIds.includes(id) ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}
+                        >
+                          <input
+                            type="checkbox"
+                            className="accent-primary"
+                            checked={s.requiredSpeakerIds.includes(id)}
+                            onChange={(e) =>
+                              onChange({
+                                ...s,
+                                requiredSpeakerIds: e.target.checked
+                                  ? [...s.requiredSpeakerIds, id]
+                                  : s.requiredSpeakerIds.filter((x) => x !== id),
+                              })
+                            }
+                          />
+                          {locale === "zh" ? tx("Must speak") : tx("Required")}
+                        </label>
+                      </div>
+                    </SortableRow>
+                  )
+                );
+              })}
+            </div>
+          </SortableList>
           <Button
             variant="ghost"
             size="sm"
@@ -527,7 +460,7 @@ export function StructureEditor({
         </div>
       )}
       {(s?.type === "stages" || s?.type === "matrix") && (
-        <div className="flow-enter space-y-3">
+        <div className="flow-enter space-y-3" data-structure-editor={s.type}>
           {s.type === "matrix" && (
             <>
               {roleFields}
@@ -550,140 +483,138 @@ export function StructureEditor({
               </div>
             </>
           )}
-          {s.stages.map((stage, i) => (
-            <SortableRow
-              key={stage.id}
-              id={`stages/${stage.id}`}
-              index={i}
-              count={s.stages.length}
-              onMove={(from, to) => onChange({ ...s, stages: moveItem(s.stages, from, to) })}
-            >
-              <div
-                onDragOver={(e) => {
-                  if (e.dataTransfer.types.includes("application/meetdone-participant"))
-                    e.preventDefault();
-                }}
-                onDrop={(e) => {
-                  const id = e.dataTransfer.getData("application/meetdone-participant");
-                  if (id) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    assign(stage.id, id);
-                  }
-                }}
-                className="min-h-12"
-              >
-                <div className="flex gap-2">
-                  <Input
-                    aria-label={`${tx("Stage")} ${i + 1}`}
-                    value={stage.builtinKey === stage.name ? tx(stage.name) : stage.name}
-                    maxLength={100}
-                    onChange={(e) =>
-                      stageUpdate(stage.id, { name: e.target.value, builtinKey: undefined })
+          <SortableList
+            ids={s.stages.map((stage) => `stages/${stage.id}`)}
+            onMove={(from, to) => onChange({ ...s, stages: moveItem(s.stages, from, to) })}
+          >
+            {s.stages.map((stage, i) => (
+              <SortableRow key={stage.id} id={`stages/${stage.id}`} index={i}>
+                <div
+                  onDragOver={(e) => {
+                    if (e.dataTransfer.types.includes("application/meetdone-participant"))
+                      e.preventDefault();
+                  }}
+                  onDrop={(e) => {
+                    const id = e.dataTransfer.getData("application/meetdone-participant");
+                    if (id) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      assign(stage.id, id);
                     }
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    disabled={s.stages.length === 1}
-                    aria-label={`${tx("Remove stage")} ${i + 1}`}
-                    onClick={() =>
-                      onChange({ ...s, stages: s.stages.filter((x) => x.id !== stage.id) })
-                    }
-                  >
-                    <Trash2 size={14} />
-                  </Button>
-                </div>
-                <OptionalGoals
-                  goals={stage.goals}
-                  onChange={(goals) => stageUpdate(stage.id, { goals })}
-                />
-                {s.type === "matrix" && (
-                  <div className="mt-3 space-y-2">
-                    {stage.assignments.map((a, n) => {
-                      const p = participants.find((p) => p.id === a.participantId);
-                      return (
-                        p && (
-                          <SortableRow
-                            key={p.id}
-                            id={`${stage.id}/${p.id}`}
-                            index={n}
-                            count={stage.assignments.length}
-                            onMove={(from, to) =>
-                              stageUpdate(stage.id, {
-                                assignments: moveItem(stage.assignments, from, to),
-                              })
-                            }
-                          >
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <span className="text-sm">{p.name}</span>
-                              <label className="flex items-center gap-1 text-xs">
-                                <input
-                                  type="checkbox"
-                                  checked={a.required}
-                                  onChange={(e) =>
-                                    stageUpdate(stage.id, {
-                                      assignments: stage.assignments.map((x) =>
-                                        x.participantId === p.id
-                                          ? { ...x, required: e.target.checked }
-                                          : x,
-                                      ),
-                                    })
-                                  }
-                                />
-                                {tx(a.required ? "Required Speaker" : "Optional Speaker")}
-                              </label>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                aria-label={`${tx("Remove participant")}: ${p.name}`}
-                                onClick={() =>
-                                  stageUpdate(stage.id, {
-                                    assignments: stage.assignments.filter(
-                                      (x) => x.participantId !== p.id,
-                                    ),
-                                  })
-                                }
-                              >
-                                <XIcon />
-                              </Button>
-                            </div>
-                          </SortableRow>
-                        )
-                      );
-                    })}
-                    <div className="flex flex-wrap gap-2">
-                      <select
-                        className="native-select !w-auto max-w-full"
-                        aria-label={`${tx("Assign participant")}: ${stage.builtinKey === stage.name ? tx(stage.name) : stage.name}`}
-                        value=""
-                        onChange={(e) => assign(stage.id, e.target.value)}
-                      >
-                        <option value="">{tx("Add participant")}</option>
-                        {participants
-                          .filter((p) => !stage.assignments.some((a) => a.participantId === p.id))
-                          .map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name}
-                            </option>
-                          ))}
-                      </select>
-                      {selectedPerson &&
-                        !stage.assignments.some((a) => a.participantId === selectedPerson) && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => assign(stage.id, selectedPerson)}
-                          >
-                            {tx("Add selected participant")}
-                          </Button>
-                        )}
-                    </div>
+                  }}
+                  className="min-h-12"
+                >
+                  <div className="flex gap-2">
+                    <Input
+                      aria-label={`${tx("Stage")} ${i + 1}`}
+                      value={stage.builtinKey === stage.name ? tx(stage.name) : stage.name}
+                      maxLength={100}
+                      onChange={(e) =>
+                        stageUpdate(stage.id, { name: e.target.value, builtinKey: undefined })
+                      }
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={s.stages.length === 1}
+                      aria-label={`${tx("Remove stage")} ${i + 1}`}
+                      onClick={() =>
+                        onChange({ ...s, stages: s.stages.filter((x) => x.id !== stage.id) })
+                      }
+                    >
+                      <Trash2 size={14} />
+                    </Button>
                   </div>
-                )}
-              </div>
-            </SortableRow>
-          ))}
+                  <StructureGoals
+                    goals={stage.goals}
+                    onChange={(goals) => stageUpdate(stage.id, { goals })}
+                  />
+                  {s.type === "matrix" && (
+                    <div className="mt-3 space-y-2">
+                      <SortableList
+                        ids={stage.assignments.map((a) => `${stage.id}/${a.participantId}`)}
+                        onMove={(from, to) =>
+                          stageUpdate(stage.id, {
+                            assignments: moveItem(stage.assignments, from, to),
+                          })
+                        }
+                      >
+                        {stage.assignments.map((a, n) => {
+                          const p = participants.find((p) => p.id === a.participantId);
+                          return (
+                            p && (
+                              <SortableRow key={p.id} id={`${stage.id}/${p.id}`} index={n}>
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <span className="text-sm">{p.name}</span>
+                                  <label className="flex items-center gap-1 text-xs">
+                                    <input
+                                      type="checkbox"
+                                      checked={a.required}
+                                      onChange={(e) =>
+                                        stageUpdate(stage.id, {
+                                          assignments: stage.assignments.map((x) =>
+                                            x.participantId === p.id
+                                              ? { ...x, required: e.target.checked }
+                                              : x,
+                                          ),
+                                        })
+                                      }
+                                    />
+                                    {tx(a.required ? "Required Speaker" : "Optional Speaker")}
+                                  </label>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    aria-label={`${tx("Remove participant")}: ${p.name}`}
+                                    onClick={() =>
+                                      stageUpdate(stage.id, {
+                                        assignments: stage.assignments.filter(
+                                          (x) => x.participantId !== p.id,
+                                        ),
+                                      })
+                                    }
+                                  >
+                                    <XIcon />
+                                  </Button>
+                                </div>
+                              </SortableRow>
+                            )
+                          );
+                        })}
+                      </SortableList>
+                      <div className="flex flex-wrap gap-2">
+                        <select
+                          className="native-select !w-auto max-w-full"
+                          aria-label={`${tx("Assign participant")}: ${stage.builtinKey === stage.name ? tx(stage.name) : stage.name}`}
+                          value=""
+                          onChange={(e) => assign(stage.id, e.target.value)}
+                        >
+                          <option value="">{tx("Add participant")}</option>
+                          {participants
+                            .filter((p) => !stage.assignments.some((a) => a.participantId === p.id))
+                            .map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name}
+                              </option>
+                            ))}
+                        </select>
+                        {selectedPerson &&
+                          !stage.assignments.some((a) => a.participantId === selectedPerson) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => assign(stage.id, selectedPerson)}
+                            >
+                              {tx("Add selected participant")}
+                            </Button>
+                          )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </SortableRow>
+            ))}
+          </SortableList>
           <div className="flex gap-2">
             <Button
               variant="ghost"

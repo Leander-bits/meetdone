@@ -187,6 +187,7 @@ for (const width of [1440, 1280, 768, 390]) {
         width < 640 ? 32 : width < 1024 ? 48 : 64,
       );
       await noOverflow(page);
+      await page.getByRole("button", { name: t("Time Sequence"), exact: true }).click();
       await page.getByRole("button", { name: t("Create Meeting"), exact: true }).click();
       await page.waitForURL(/\/meetings\//);
       await expect(

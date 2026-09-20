@@ -10,7 +10,6 @@ import {
   compileRequirements,
   displayNameFromEmail,
   durationMinutes,
-  initialStructure,
   reusableTemplate,
   validConfiguration,
   validParticipants,
@@ -69,7 +68,7 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
   const choose = (template: MeetingTemplate) => {
     setSelected(template);
     setGoals(structuredClone(template.defaultGoals));
-    setStructure(initialStructure(template.structureType, duration, participants, template));
+    setStructure(null);
     setTemplateName(isBuiltinTemplate(template.id) ? "" : template.name);
     setSavedMessage(false);
   };
@@ -396,10 +395,6 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                 onClick={() => {
                   if (page === 3) finish();
                   else {
-                    if (page === 2 && selected && !structure)
-                      setStructure(
-                        initialStructure(selected.structureType, duration, participants, selected),
-                      );
                     setPage(page + 1);
                   }
                 }}

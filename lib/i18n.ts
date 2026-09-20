@@ -1,6 +1,19 @@
 export type Locale = "zh" | "en";
 export const LANGUAGE_KEY = "meetdone.language";
 export const zh: Record<string, string> = {
+  "Must speak": "必须发言",
+  "Add Goal": "添加目标",
+  Goals: "目标",
+  "e.g. Confirm launch risks": "例如：明确上线风险",
+  "e.g. Review customer feedback": "例如：确认客户反馈",
+  "e.g. Decide whether to release": "例如：决定是否发布",
+  "Drag to reorder": "拖动排序",
+  "Press Space to pick up, arrow keys to move, Space to drop, or Escape to cancel.":
+    "按空格键开始拖动，方向键移动，再按空格键放下，或按 Escape 取消。",
+  "Item picked up.": "已拿起。",
+  Position: "位置",
+  "Item dropped.": "已放下。",
+  "Reordering cancelled.": "已取消排序。",
   "Not Ready to End": "暂不能结束",
   "Make sure every meeting finishes with the right discussions, decisions, and owners.":
     "让会议在结束前确认该讨论的、该决定的、该负责的都已完成。",
@@ -68,10 +81,6 @@ export const zh: Record<string, string> = {
   Goal: "目标",
   "Remove goal": "移除目标",
   "Add goal": "添加目标",
-  "Recommended goals": "建议目标",
-  "Recommended goal": "建议目标",
-  "Move up": "上移",
-  "Move down": "下移",
   "Meeting Structure": "会议结构",
   "Time Sequence": "时间顺序",
   "Speaker Sequence": "发言顺序",
@@ -357,7 +366,6 @@ export const zh: Record<string, string> = {
   "Unsaved requirement changes": "要求尚未保存",
   "Requirements saved": "要求已保存",
   "Unsaved edits": "有未保存的修改",
-  Goals: "会议目标",
   "Required conclusions": "必要结论",
   Topics: "议题",
   "Speaker inputs": "必要发言",

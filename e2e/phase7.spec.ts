@@ -1,18 +1,16 @@
 import { test, expect, type Locator } from "@playwright/test";
-import { analyzeSample, configuration, details, english, saved } from "./helpers";
+import { pointerReorder, analyzeSample, configuration, details, english, saved } from "./helpers";
 
 async function recommendedGoals(row: Locator) {
   await expect(row.getByRole("button", { name: "Remove goal 1", exact: true })).toHaveCount(0);
   await expect(row.locator("[data-item-number]").nth(1)).toHaveText("a.");
-  await row.getByRole("button", { name: "Add goal", exact: true }).click();
-  await row.getByRole("textbox", { name: "Recommended goal 2", exact: true }).fill("Second goal");
-  await row.getByRole("button", { name: "Add goal", exact: true }).click();
-  await row.getByRole("textbox", { name: "Recommended goal 3", exact: true }).fill("Third goal");
+  await row.getByRole("button", { name: "Add Goal", exact: true }).click();
+  await row.getByRole("textbox", { name: "Goal 2", exact: true }).fill("Second goal");
+  await row.getByRole("button", { name: "Add Goal", exact: true }).click();
+  await row.getByRole("textbox", { name: "Goal 3", exact: true }).fill("Third goal");
   await expect(row.locator("[data-item-number]").nth(3)).toHaveText("c.");
   await row.getByRole("button", { name: "Remove goal 2", exact: true }).click();
-  await expect(row.getByRole("textbox", { name: "Recommended goal 2", exact: true })).toHaveValue(
-    "Third goal",
-  );
+  await expect(row.getByRole("textbox", { name: "Goal 2", exact: true })).toHaveValue("Third goal");
   await expect(row.locator("[data-item-number]").nth(2)).toHaveText("b.");
 }
 
@@ -105,11 +103,7 @@ for (const [template, group] of [
     const rows = page.locator(`[data-sortable^="${group}/"]`);
     const firstName = await rows.first().getByRole("textbox").first().inputValue();
     await rows.nth(1).evaluate((el) => el.scrollIntoView({ block: "center" }));
-    await rows
-      .first()
-      .locator('[draggable="true"]')
-      .first()
-      .dragTo(rows.nth(1).locator('[draggable="true"]').first());
+    await pointerReorder(page, rows.first(), rows.nth(1));
     await expect(rows.nth(1).getByRole("textbox").first()).toHaveValue(firstName);
     await expect(rows.first().locator("[data-item-number]").first()).toHaveText("1.");
     await expect(rows.nth(1).locator("[data-item-number]").first()).toHaveText("2.");
