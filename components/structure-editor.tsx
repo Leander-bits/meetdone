@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { ArrowRight, Clock3, Users, ListOrdered, Grid2X2, Plus, Trash2 } from "lucide-react";
+import { Clock3, Users, ListOrdered, Grid2X2, Plus, Trash2 } from "lucide-react";
 import {
   GoalInput,
   MeetingStructure,
@@ -23,6 +23,7 @@ import { useI18n } from "./language-provider";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { SortableList, SortableRow } from "./sortable";
+import { SpeakerFlow } from "./speaker-flow";
 import { ItemNumber } from "./requirement-controls";
 
 export function MeetingGoalsEditor({
@@ -187,7 +188,7 @@ export function StructureEditor({
   duration: number;
   template?: MeetingTemplate;
 }) {
-  const { t: tx, locale } = useI18n();
+  const { t: tx } = useI18n();
   const icons = { time: Clock3, speaker: Users, stages: ListOrdered, matrix: Grid2X2 };
   const [selectedPerson, setSelectedPerson] = useState("");
   const stageUpdate = (id: string, patch: Partial<Stage>) => {
@@ -214,35 +215,6 @@ export function StructureEditor({
         ],
       });
   };
-  const roleFields = (
-    <div className="space-y-2">
-      {participants.map((p) => (
-        <label key={p.id} className="flex items-center justify-between gap-3 text-sm">
-          <span>{p.name}</span>
-          <select
-            aria-label={`${tx("Role")}: ${p.name}`}
-            className="native-select !w-40"
-            value={p.role}
-            onChange={(e) => {
-              onParticipantsChange(
-                participants.map((x) =>
-                  x.id === p.id
-                    ? { ...x, role: e.target.value as Participant["role"], roleLabel: undefined }
-                    : x,
-                ),
-              );
-            }}
-          >
-            {["Product", "Engineering", "Sales", "Customer", "Other"].map((role) => (
-              <option key={role} value={role}>
-                {tx(role)}
-              </option>
-            ))}
-          </select>
-        </label>
-      ))}
-    </div>
-  );
   return (
     <section className="space-y-5">
       <h2 className="text-lg font-semibold">{tx("Meeting Structure")}</h2>
@@ -371,85 +343,26 @@ export function StructureEditor({
           className="flow-enter speaker-flow-container space-y-3"
           data-structure-editor="speaker"
         >
-          <SortableList
-            ids={s.speakerOrder.map((id) => `speakers/${id}`)}
+          <SpeakerFlow
+            group="speakers"
+            assignments={s.speakerOrder.map((id) => ({
+              participantId: id,
+              required: s.requiredSpeakerIds.includes(id),
+            }))}
+            participants={participants}
+            onParticipantsChange={onParticipantsChange}
             onMove={(from, to) =>
               onChange({ ...s, speakerOrder: moveItem(s.speakerOrder, from, to) })
             }
-          >
-            <div className="speaker-flow" data-speaker-flow>
-              {s.speakerOrder.map((id, i) => {
-                const p = participants.find((p) => p.id === id);
-                return (
-                  p && (
-                    <SortableRow key={id} id={`speakers/${id}`} index={i} flow>
-                      <div
-                        className={`speaker-node mx-auto flex h-24 w-24 items-center justify-center rounded-full border-2 p-2 text-center text-sm font-medium break-words ${s.requiredSpeakerIds.includes(id) ? "border-primary/60 bg-primary/5" : "border-border bg-white"}`}
-                        data-speaker-node
-                        title={p.name}
-                      >
-                        <span className="line-clamp-3 break-all">{p.name}</span>
-                      </div>
-                      {i < s.speakerOrder.length - 1 && (
-                        <ArrowRight
-                          data-speaker-arrow
-                          data-from={id}
-                          data-to={s.speakerOrder[i + 1]}
-                          aria-hidden="true"
-                          className="speaker-arrow absolute text-muted-foreground/60"
-                          size={18}
-                        />
-                      )}
-                      <div className="mx-auto mt-3 flex w-36 max-w-full flex-col gap-2">
-                        <select
-                          aria-label={`${tx("Role")}: ${p.name}`}
-                          className="native-select !text-xs"
-                          value={p.role}
-                          onChange={(e) =>
-                            onParticipantsChange(
-                              participants.map((x) =>
-                                x.id === id
-                                  ? {
-                                      ...x,
-                                      role: e.target.value as Participant["role"],
-                                      roleLabel: undefined,
-                                    }
-                                  : x,
-                              ),
-                            )
-                          }
-                        >
-                          {["Product", "Engineering", "Sales", "Customer", "Other"].map((role) => (
-                            <option key={role} value={role}>
-                              {tx(role)}
-                            </option>
-                          ))}
-                        </select>
-                        <label
-                          className={`flex items-center justify-center gap-2 rounded px-2 py-1 text-xs ${s.requiredSpeakerIds.includes(id) ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}
-                        >
-                          <input
-                            type="checkbox"
-                            className="accent-primary"
-                            checked={s.requiredSpeakerIds.includes(id)}
-                            onChange={(e) =>
-                              onChange({
-                                ...s,
-                                requiredSpeakerIds: e.target.checked
-                                  ? [...s.requiredSpeakerIds, id]
-                                  : s.requiredSpeakerIds.filter((x) => x !== id),
-                              })
-                            }
-                          />
-                          {locale === "zh" ? tx("Must speak") : tx("Required")}
-                        </label>
-                      </div>
-                    </SortableRow>
-                  )
-                );
-              })}
-            </div>
-          </SortableList>
+            onRequiredChange={(id, required) =>
+              onChange({
+                ...s,
+                requiredSpeakerIds: required
+                  ? [...s.requiredSpeakerIds, id]
+                  : s.requiredSpeakerIds.filter((x) => x !== id),
+              })
+            }
+          />
           <Button
             variant="ghost"
             size="sm"
@@ -463,7 +376,7 @@ export function StructureEditor({
         <div className="flow-enter space-y-3" data-structure-editor={s.type}>
           {s.type === "matrix" && (
             <>
-              {roleFields}
+              <p className="text-xs font-medium text-muted-foreground">{tx("Participants")}</p>
               <div className="flex flex-wrap gap-2">
                 {participants.map((p) => (
                   <button
@@ -488,7 +401,12 @@ export function StructureEditor({
             onMove={(from, to) => onChange({ ...s, stages: moveItem(s.stages, from, to) })}
           >
             {s.stages.map((stage, i) => (
-              <SortableRow key={stage.id} id={`stages/${stage.id}`} index={i}>
+              <SortableRow
+                key={stage.id}
+                id={`stages/${stage.id}`}
+                index={i}
+                section={s.type === "matrix"}
+              >
                 <div
                   onDragOver={(e) => {
                     if (e.dataTransfer.types.includes("application/meetdone-participant"))
@@ -503,9 +421,11 @@ export function StructureEditor({
                     }
                   }}
                   className="min-h-12"
+                  data-matrix-stage={s.type === "matrix" ? stage.id : undefined}
                 >
                   <div className="flex gap-2">
                     <Input
+                      className={s.type === "matrix" ? "!text-base font-semibold" : undefined}
                       aria-label={`${tx("Stage")} ${i + 1}`}
                       value={stage.builtinKey === stage.name ? tx(stage.name) : stage.name}
                       maxLength={100}
@@ -531,57 +451,29 @@ export function StructureEditor({
                   />
                   {s.type === "matrix" && (
                     <div className="mt-3 space-y-2">
-                      <SortableList
-                        ids={stage.assignments.map((a) => `${stage.id}/${a.participantId}`)}
+                      <SpeakerFlow
+                        group={stage.id}
+                        assignments={stage.assignments}
+                        participants={participants}
+                        onParticipantsChange={onParticipantsChange}
                         onMove={(from, to) =>
                           stageUpdate(stage.id, {
                             assignments: moveItem(stage.assignments, from, to),
                           })
                         }
-                      >
-                        {stage.assignments.map((a, n) => {
-                          const p = participants.find((p) => p.id === a.participantId);
-                          return (
-                            p && (
-                              <SortableRow key={p.id} id={`${stage.id}/${p.id}`} index={n}>
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <span className="text-sm">{p.name}</span>
-                                  <label className="flex items-center gap-1 text-xs">
-                                    <input
-                                      type="checkbox"
-                                      checked={a.required}
-                                      onChange={(e) =>
-                                        stageUpdate(stage.id, {
-                                          assignments: stage.assignments.map((x) =>
-                                            x.participantId === p.id
-                                              ? { ...x, required: e.target.checked }
-                                              : x,
-                                          ),
-                                        })
-                                      }
-                                    />
-                                    {tx(a.required ? "Required Speaker" : "Optional Speaker")}
-                                  </label>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    aria-label={`${tx("Remove participant")}: ${p.name}`}
-                                    onClick={() =>
-                                      stageUpdate(stage.id, {
-                                        assignments: stage.assignments.filter(
-                                          (x) => x.participantId !== p.id,
-                                        ),
-                                      })
-                                    }
-                                  >
-                                    <XIcon />
-                                  </Button>
-                                </div>
-                              </SortableRow>
-                            )
-                          );
-                        })}
-                      </SortableList>
+                        onRequiredChange={(id, required) =>
+                          stageUpdate(stage.id, {
+                            assignments: stage.assignments.map((a) =>
+                              a.participantId === id ? { ...a, required } : a,
+                            ),
+                          })
+                        }
+                        onRemove={(id) =>
+                          stageUpdate(stage.id, {
+                            assignments: stage.assignments.filter((a) => a.participantId !== id),
+                          })
+                        }
+                      />
                       <div className="flex flex-wrap gap-2">
                         <select
                           className="native-select !w-auto max-w-full"
@@ -589,7 +481,7 @@ export function StructureEditor({
                           value=""
                           onChange={(e) => assign(stage.id, e.target.value)}
                         >
-                          <option value="">{tx("Add participant")}</option>
+                          <option value="">+ {tx("Add participant")}</option>
                           {participants
                             .filter((p) => !stage.assignments.some((a) => a.participantId === p.id))
                             .map((p) => (
@@ -667,7 +559,4 @@ export function StructureEditor({
       )}
     </section>
   );
-}
-function XIcon() {
-  return <Trash2 size={12} />;
 }

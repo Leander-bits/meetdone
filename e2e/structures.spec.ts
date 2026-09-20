@@ -27,9 +27,7 @@ test("matrix chips can be dragged into stages, including on a mobile-sized layou
   await configuration(page, "Customer Progress Meeting");
   const chip = page.locator('button[draggable="true"]').first();
   await chip.dragTo(page.getByRole("textbox", { name: "Stage 1", exact: true }));
-  await expect(page.getByRole("checkbox", { name: "Required Speaker", exact: true })).toHaveCount(
-    1,
-  );
+  await expect(page.getByRole("checkbox", { name: "Required", exact: true })).toHaveCount(1);
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole("textbox", { name: "Stage 1", exact: true }).scrollIntoViewIfNeeded();
@@ -121,7 +119,7 @@ test("matrix assigns one person to multiple stages with independent required fla
     await page
       .getByRole("combobox", { name: `Assign participant: ${stage}`, exact: true })
       .selectOption(personId!);
-  await page.getByRole("checkbox", { name: "Required Speaker", exact: true }).first().uncheck();
+  await page.getByRole("checkbox", { name: "Required", exact: true }).first().uncheck();
   await page.screenshot({ path: info.outputPath("matrix.png"), fullPage: true });
   await page.getByRole("button", { name: "Create Meeting", exact: true }).click();
   const m = (await saved(page))[0];

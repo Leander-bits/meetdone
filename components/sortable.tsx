@@ -71,11 +71,13 @@ export function SortableRow({
   index,
   children,
   flow = false,
+  section = false,
 }: {
   id: string;
   index: number;
   children: ReactNode;
   flow?: boolean;
+  section?: boolean;
 }) {
   const { t } = useI18n();
   const {
@@ -95,7 +97,7 @@ export function SortableRow({
       data-dragging={isDragging || undefined}
       data-drag-over={isOver || undefined}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`relative min-w-0 ${flow ? "speaker-flow-item" : "rounded-lg border bg-white p-3"} ${isDragging ? "z-20 rounded-lg bg-primary/5 ring-2 ring-primary opacity-80" : isOver ? "rounded-lg border-primary bg-primary/5" : "border-border"}`}
+      className={`relative min-w-0 ${flow ? "speaker-flow-item" : section ? "border-t py-6" : "rounded-lg border bg-white p-3"} ${isDragging ? "z-20 rounded-lg bg-primary/5 ring-2 ring-primary opacity-80" : isOver ? "rounded-lg border-primary bg-primary/5" : "border-border"}`}
     >
       <div className={flow ? "flex flex-col items-center" : "flex items-start gap-2"}>
         <div className="flex shrink-0 items-start gap-1">

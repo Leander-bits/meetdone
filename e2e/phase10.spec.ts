@@ -70,7 +70,7 @@ test("nested matrix ordering preserves assignments and supports keyboard cancell
   const participants = stage.locator("[data-sortable]");
   const id = await participants.first().getAttribute("data-sortable");
   await participants.first().getByRole("checkbox").uncheck();
-  await keyboardReorder(page, participants.first(), participants.nth(1), "ArrowDown");
+  await keyboardReorder(page, participants.first(), participants.nth(1), "ArrowRight");
   await expect(participants.nth(1)).toHaveAttribute("data-sortable", id!);
   await expect(participants.nth(1).getByRole("checkbox")).not.toBeChecked();
   await expect(participants.locator("[data-item-number]")).toHaveText(["1.", "2.", "3."]);
@@ -78,7 +78,7 @@ test("nested matrix ordering preserves assignments and supports keyboard cancell
   await handle.focus();
   await page.keyboard.press("Space");
   await expect(participants.nth(1)).toHaveAttribute("data-dragging", "true");
-  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowRight");
   await expect(participants.nth(2)).toHaveAttribute("data-drag-over", "true");
   await page.keyboard.press("Escape");
   await expect(participants.nth(1)).toHaveAttribute("data-sortable", id!);
