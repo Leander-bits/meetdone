@@ -1,17 +1,14 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { Meeting, MeetingAnalysis } from "@/lib/models";
-import { scenarios } from "@/lib/demo";
 import { MAX_TRANSCRIPT_LENGTH, AnalysisError } from "@/lib/analysis-contract";
 import { requestAnalysis } from "@/lib/analysis-client";
-import { analyzeMeeting, loadScenario, updateTranscript } from "@/lib/meeting-state";
+import { updateTranscript } from "@/lib/meeting-state";
 import { useI18n } from "./language-provider";
 import { Notice } from "./shared";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { importTextFile } from "@/lib/transcript-import";
-import { useWorkspace } from "./workspace-store";
 
 export function TranscriptPanel({
   meeting: m,
@@ -28,12 +25,8 @@ export function TranscriptPanel({
 }) {
   const { t: tx } = useI18n();
   const [failure, setFailure] = useState<string | null>(null);
-  const [demoOpen, setDemoOpen] = useState(false);
-  const [demoHint, setDemoHint] = useState(false);
   const [importing, setImporting] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
-  const { meetings, resetDemo } = useWorkspace();
-  const availableScenarios = scenarios.filter((s) => s.templateId === m.templateId);
   const tooLong = m.transcript.text.length > MAX_TRANSCRIPT_LENGTH;
   const controller = useRef<AbortController | null>(null);
   useEffect(() => () => controller.current?.abort(), []);
@@ -67,7 +60,7 @@ export function TranscriptPanel({
             disabled={pending || importing}
             onClick={() => fileInput.current?.click()}
           >
-            {tx(importing ? "Importing…" : "Import .txt")}
+            {tx(importing ? "Importing…" : "Import Text")}
           </Button>
         )}
       </div>
@@ -75,7 +68,7 @@ export function TranscriptPanel({
         ref={fileInput}
         type="file"
         accept=".txt,text/plain"
-        aria-label={tx("Import .txt")}
+        aria-label={tx("Import Text")}
         className="hidden"
         disabled={ended || pending || importing}
         onChange={async (e) => {
@@ -87,7 +80,6 @@ export function TranscriptPanel({
           try {
             const text = await importTextFile(file);
             update((current) => updateTranscript(current, text, file.name));
-            setDemoHint(false);
           } catch (error) {
             setFailure(error instanceof Error ? error.message : "The file could not be read.");
           } finally {
@@ -104,7 +96,6 @@ export function TranscriptPanel({
         aria-invalid={tooLong}
         onChange={(e) => {
           setFailure(null);
-          setDemoHint(false);
           update((current) =>
             updateTranscript(current, e.target.value, current.transcript.fileName),
           );
@@ -120,92 +111,12 @@ export function TranscriptPanel({
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Button disabled={pending || importing || tooLong} onClick={analyze}>
-              {tx(pending ? "Analyzing" : "Analyze Meeting")}
+              {tx(pending ? "Analyzing" : "AI Analyze Meeting")}
             </Button>
             <span className="text-xs text-muted-foreground">
               {m.transcript.text.length.toLocaleString()} / {MAX_TRANSCRIPT_LENGTH.toLocaleString()}
             </span>
           </div>
-          {availableScenarios.length > 0 && (
-            <details
-              open={demoOpen}
-              onToggle={(e) => setDemoOpen(e.currentTarget.open)}
-              className="pt-1 text-sm"
-            >
-              <summary className="w-fit text-muted-foreground">{tx("Load Demo Scenario")}</summary>
-              <p className="mt-2 text-xs text-muted-foreground">
-                {tx("Replaces the current transcript.")}
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                {availableScenarios.map((s) => (
-                  <Button
-                    key={s.id}
-                    size="sm"
-                    variant="outline"
-                    disabled={pending || importing}
-                    onClick={() => {
-                      if (update((current) => loadScenario(current, s.id))) {
-                        setFailure(null);
-                        setDemoHint(false);
-                      }
-                    }}
-                  >
-                    {tx(s.name)}
-                  </Button>
-                ))}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={pending || importing}
-                  onClick={() => {
-                    setFailure(null);
-                    if (!m.transcript.scenarioId) {
-                      setDemoHint(true);
-                      return;
-                    }
-                    if (update(analyzeMeeting)) setDemoHint(false);
-                  }}
-                >
-                  {tx("Use Demo Analysis")}
-                </Button>
-              </div>
-              {demoHint && (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {tx("Select a demo scenario first. This replaces your transcript.")}
-                </p>
-              )}
-            </details>
-          )}
-          {failure && !demoOpen && availableScenarios.length > 0 && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                setDemoOpen(true);
-                setDemoHint(!m.transcript.scenarioId);
-              }}
-            >
-              {tx("Use Demo Analysis")}
-            </Button>
-          )}
-          {availableScenarios.length === 0 && (
-            <Button variant="ghost" size="sm" asChild>
-              <Link
-                href="/meetings/demo-launch"
-                onClick={() => {
-                  if (!meetings.some((m) => m.id === "demo-launch")) resetDemo();
-                }}
-              >
-                {tx("Open Demo Meeting")}
-              </Link>
-            </Button>
-          )}
-          <details className="text-sm">
-            <summary className="w-fit text-muted-foreground">{tx("Live Transcription")}</summary>
-            <p className="mt-2 text-xs text-muted-foreground">
-              {tx("Coming soon. Paste or import a transcript for now.")}
-            </p>
-          </details>
         </>
       )}
     </section>

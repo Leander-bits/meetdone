@@ -25,8 +25,34 @@ export async function saved(page: Page) {
     () => JSON.parse(localStorage.getItem("meetdone.workspace.v1") ?? '{"meetings":[]}').meetings,
   );
 }
+// Exercise explicit AI requests with deterministic HTTP fixtures; no product mock mode.
+export async function analyzeSample(page: Page, scenarioId = "launch-incomplete") {
+  const { scenarios } = await import("../tests/fixtures/demo");
+  const scenario = scenarios.find((s) => s.id === scenarioId)!;
+  await page.getByRole("textbox", { name: "Transcript", exact: true }).fill(scenario.transcript);
+  await page.route("**/api/analyze-meeting", async (route) => {
+    const input = route.request().postDataJSON();
+    await route.fulfill({
+      json: {
+        analysis: {
+          ...scenario.analysis,
+          id: `ai-${scenarioId}`,
+          provider: "deepseek",
+          scenarioId: null,
+          transcriptRevision: input.transcript.revision,
+          requirementsRevision: input.requirements.revision,
+          actionItems: scenario.analysis.actionItems.map((a) => ({ ...a, source: "ai" })),
+          evidence: scenario.analysis.evidence.map((e) => ({
+            ...e,
+            transcriptRevision: input.transcript.revision,
+          })),
+        },
+      },
+    });
+  });
+  await page.getByRole("button", { name: "AI Analyze Meeting", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "AI Analysis", exact: true })).toBeVisible();
+}
 export async function demoComplete(page: Page) {
-  await page.getByText("Load Demo Scenario", { exact: true }).click();
-  await page.getByRole("button", { name: /Scenario B/ }).click();
-  await page.getByRole("button", { name: "Use Demo Analysis", exact: true }).click();
+  await analyzeSample(page, "launch-complete");
 }

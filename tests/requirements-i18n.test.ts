@@ -5,10 +5,10 @@ import {
   updateRequirements,
   updateTranscript,
   analyzeMeeting,
-} from "@/lib/meeting-state";
+} from "./fixtures/meeting-state";
 import { minimumKinds, removeRequirement, validRequirementLists } from "@/lib/requirements";
 import { templates } from "@/lib/templates";
-import { scenarios } from "@/lib/demo";
+import { scenarios } from "./fixtures/demo";
 import { translate, zh } from "@/lib/i18n";
 import { readMeetings, writeMeetings } from "@/lib/storage";
 

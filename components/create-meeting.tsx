@@ -5,7 +5,7 @@ import { ArrowLeft, Plus, Trash2, X, CalendarDays } from "lucide-react";
 import { MeetingTemplate, Participant, Requirement, MeetingStructure } from "@/lib/models";
 import { templates } from "@/lib/templates";
 import { blankTemplate, isBuiltinTemplate } from "@/lib/custom-templates";
-import { createMeeting } from "@/lib/demo";
+import { createMeeting } from "@/lib/meeting-factory";
 import {
   compileRequirements,
   displayNameFromEmail,
@@ -50,6 +50,14 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
   const [templateName, setTemplateName] = useState("");
   const [savedMessage, setSavedMessage] = useState(false);
   const duration = durationMinutes(startTime, endTime);
+  const timeError =
+    startTime && endTime
+      ? duration <= 0
+        ? "End time must be later than start time"
+        : duration > 720 || duration % 5 !== 0
+          ? "Enter a valid meeting time"
+          : null
+      : null;
   const pageOneValid =
     !!name.trim() &&
     validSchedule(date, startTime, endTime, timezone) &&
@@ -139,6 +147,8 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                       <label>
                         <span className="field-label">{tx("Start time")}</span>
                         <Input
+                          aria-invalid={!!timeError}
+                          aria-describedby={timeError ? "meeting-time-error" : undefined}
                           type="time"
                           step={300}
                           required
@@ -152,6 +162,8 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                       <label>
                         <span className="field-label">{tx("End time")}</span>
                         <Input
+                          aria-invalid={!!timeError}
+                          aria-describedby={timeError ? "meeting-time-error" : undefined}
                           type="time"
                           step={300}
                           required
@@ -163,6 +175,11 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                         />
                       </label>
                     </div>
+                    {timeError && (
+                      <p id="meeting-time-error" role="alert" className="text-sm text-destructive">
+                        {tx(timeError)}
+                      </p>
+                    )}
                     <label className="block max-w-sm">
                       <span className="field-label">{tx("Timezone")}</span>
                       <select
@@ -179,12 +196,7 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                       </select>
                     </label>
                     <p className="text-xs text-muted-foreground">
-                      {timezoneOffset(timezone, date, startTime) && (
-                        <span>
-                          {timezoneOffset(timezone, date, startTime)} {"\u00b7"}{" "}
-                        </span>
-                      )}
-                      {tx("Same-day meeting · 5-minute increments · up to 12 hours")}
+                      {timezoneOffset(timezone, date, startTime)}
                     </p>
                   </fieldset>
                   <fieldset>
@@ -221,19 +233,20 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                               />
                             </label>
                           </div>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            disabled={participants.length === 1}
-                            aria-label={`${tx("Remove participant")} ${i + 1}`}
-                            onClick={() => {
-                              setDirty(true);
-                              setParticipants(participants.filter((x) => x.id !== p.id));
-                              setStructure(null);
-                            }}
-                          >
-                            <Trash2 size={15} />
-                          </Button>
+                          {i > 0 && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              aria-label={`${tx("Remove participant")} ${i + 1}`}
+                              onClick={() => {
+                                setDirty(true);
+                                setParticipants(participants.filter((x) => x.id !== p.id));
+                                setStructure(null);
+                              }}
+                            >
+                              <Trash2 size={15} />
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -310,15 +323,13 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                     duration={duration}
                     template={selected}
                   />
-                  <details className="border-t pt-4">
-                    <summary className="text-sm text-muted-foreground">
-                      {tx("Reusable rules")}
-                    </summary>
+                  <section className="border-t pt-4">
+                    <h2 className="text-lg font-semibold">{tx("Meeting Rules")}</h2>
                     <MeetingRulesEditor
                       rules={selected.rules}
                       onChange={(rules) => setSelected({ ...selected, rules })}
                     />
-                  </details>
+                  </section>
                   <div>
                     <Button
                       variant="ghost"

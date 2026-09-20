@@ -66,7 +66,7 @@ export function checkCompletion(input: CheckInput): CompletionCheck {
       "analysis_missing",
       undefined,
       "The current transcript and requirements have not been analyzed.",
-      "Analyze the transcript or use a demo scenario before ending the meeting.",
+      "Analyze the transcript before ending the meeting.",
     );
   } else if (analysis) {
     for (const r of requirements.items) {

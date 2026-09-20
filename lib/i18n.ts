@@ -1,6 +1,20 @@
 export type Locale = "zh" | "en";
 export const LANGUAGE_KEY = "meetdone.language";
 export const zh: Record<string, string> = {
+  "AI Analyze Meeting": "AI分析会议",
+  "Import Text": "导入文本",
+  "Meeting Rules": "会议规则",
+  "End time must be later than start time": "结束时间必须晚于开始时间",
+  "Enter a valid meeting time": "请输入有效的会议时间",
+  "Allow conversion into a follow-up action with owner and deadline":
+    "允许转为有负责人和截止日期的后续行动",
+  "Remove segment": "移除时段",
+  "Required Speakers": "必须发言人",
+  "Required Speakers by Stage": "各阶段必须发言人",
+  "Stage Goals": "阶段目标",
+  "Segment Goals": "时段目标",
+  "Requirement Evaluation": "要求评估",
+  "Analyze the transcript before ending the meeting.": "结束会议前，请先分析会议记录。",
   "Schedule not recorded": "未记录会议时间",
   "Structure not recorded": "未记录会议结构",
   "Saved summary": "已保存的总结",
@@ -23,15 +37,12 @@ export const zh: Record<string, string> = {
   "Start time": "开始时间",
   "End time": "结束时间",
   Timezone: "时区",
-  "Same-day meeting · 5-minute increments · up to 12 hours":
-    "同日会议 · 以 5 分钟为单位 · 最长 12 小时",
   Participants: "参会人",
   Email: "邮箱",
   "Display name": "显示名称",
   "Add participant": "添加参会人",
   "Remove participant": "移除参会人",
   "Choose a template": "选择模板",
-  "Reusable rules": "会议规则",
   "Back to Home": "返回首页",
   Continue: "继续",
   "Discard this meeting?": "放弃正在创建的会议？",
@@ -144,14 +155,11 @@ export const zh: Record<string, string> = {
   "Enter a template name and complete every requirement.": "请填写模板名称和各项要求。",
   "Custom templates could not be loaded.": "无法读取自定义模板。",
   "Template not found.": "未找到模板。",
-  "Import .txt": "导入 .txt",
   "Choose a .txt text file.": "请选择 .txt 文本文件",
   "The file could not be read.": "无法读取文件，请重试",
   "The file must use UTF-8 encoding.": "文件需使用 UTF-8 编码",
   "Importing…": "正在导入…",
-  "Live Transcription": "实时记录",
   "Coming soon. Paste or import a transcript for now.": "暂未开放，请先粘贴或导入会议记录。",
-  "Open Demo Meeting": "打开演示会议",
   "Before the meeting ends, make sure the discussion, decisions, and responsibilities are complete.":
     "在会议结束前，确认该讨论的、该决定的、该负责的都已经完成。",
   "Meeting name": "会议名称",
@@ -170,8 +178,6 @@ export const zh: Record<string, string> = {
   "Meeting record": "会议记录与要求",
   "Re-analyze after changing meeting requirements": "修改会议要求后，请重新分析",
   "Action created. Check readiness again.": "行动项已创建，请再次检查是否可以结束。",
-  "Select a demo scenario first. This replaces your transcript.":
-    "请先选择演示场景，这将替换当前会议记录。",
   "Replaces the current transcript.": "将替换当前会议记录。",
   "Follow up": "跟进",
   "End Meeting": "结束会议",
@@ -253,8 +259,6 @@ export const zh: Record<string, string> = {
   "action deadline": "缺少截止日期",
   "unresolved issue": "未解决问题",
   "The current transcript and requirements have not been analyzed.": "尚未分析当前文本和要求。",
-  "Analyze the transcript or use a demo scenario before ending the meeting.":
-    "结束前请先分析文本，或使用演示场景。",
   "Only partially covered in the discussion.": "讨论仅部分覆盖此要求。",
   "No evidence that this requirement has been completed.": "没有证据表明此要求已完成。",
   "Discuss this requirement and capture a supported conclusion.":
@@ -317,7 +321,6 @@ export const zh: Record<string, string> = {
   "Confirm progress, surface blockers, and agree on the next milestone.":
     "确认进展、发现阻碍，并就下一个里程碑达成一致。",
   "Your meetings": "我的会议",
-  "Reset Demo": "重置演示",
   "Preloaded demo": "预载演示",
   "required outcomes": "项必要成果",
   "MeetDone · Meetings with a finish line.": "MeetDone · 让会议有明确的终点。",
@@ -353,7 +356,6 @@ export const zh: Record<string, string> = {
   "Requirement level": "要求级别",
   "Opinion on": "发言议题",
   "Any meeting topic": "任意会议议题",
-  "Allow deferral to an owned, dated action": "允许转为有负责人和截止日期的会后行动",
   "At least one item is required.": "至少保留一项。",
   "Describe the requirement": "描述这项要求",
   Transcript: "会议记录",
@@ -393,7 +395,6 @@ export const zh: Record<string, string> = {
   "Text transcript is the primary input. Paste notes or a speaker-labeled transcript.":
     "以文本为主要输入。粘贴会议记录，或带有发言人标记的逐字稿。",
   "Load a demo scenario": "加载演示场景",
-  "Load Demo Scenario": "加载演示场景",
   "Scenario A · Incomplete": "场景 A · 未完成",
   "Scenario B · Complete": "场景 B · 已完成",
   "Complete example": "完整示例",
@@ -408,30 +409,20 @@ export const zh: Record<string, string> = {
   characters: "字符",
   "Saved in this browser": "已保存在当前浏览器",
   "Storage unavailable": "无法保存到本地",
-  "Analyze Meeting": "分析会议",
-  "Use Demo Analysis": "使用演示分析",
   Analyzing: "分析中",
   "Analysis Complete": "分析完成",
   "AI Analysis Failed": "AI 分析失败",
   "AI Analysis Mode": "AI 分析模式",
   "Demo analysis mode": "演示分析模式",
-  "Demo Analysis Mode": "演示分析模式",
   "AI Analysis": "AI 分析",
-  "Demo Analysis": "演示分析",
   "Not analyzed": "未分析",
   "AI extraction · Readiness checked by rules": "AI 提取事实 · 规则判断就绪状态",
   "Fixed transcript fixture · Evidence included": "固定演示分析 · 含原文证据",
   "Custom text is saved without analysis": "文本已保存，等待分析",
   "Analyze a transcript or load a demo to begin.": "分析会议文本，或加载演示开始体验。",
-  "Demo analysis requires an unchanged demo transcript. Load a demo scenario or use AI analysis.":
-    "演示分析仅适用于未修改的演示文本。请加载演示场景，或使用 AI 分析。",
-  "Load a demo scenario to use demo analysis. Your current transcript will only be replaced when you select a scenario.":
-    "使用演示分析前请先选择演示场景。只有选择场景后才会替换当前文本。",
   "AI analysis sends this transcript and its requirements to the configured AI provider.":
     "AI 分析会将此会议文本和要求发送给已配置的 AI 服务。",
   "Analysis complete. Coverage and readiness are updated.": "分析完成，覆盖情况和就绪状态已更新。",
-  "Demo transcript loaded. Click Use Demo Analysis or Analyze Meeting.":
-    "演示文本已加载。请选择使用演示分析或分析会议。",
   "Coverage overview": "覆盖情况总览",
   "What the discussion supports, measured against your requirements.":
     "根据会议要求检查讨论已有的事实与证据。",

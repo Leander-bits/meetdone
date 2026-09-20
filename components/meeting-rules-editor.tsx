@@ -4,6 +4,8 @@ import { Requirement, kindLabels } from "@/lib/models";
 import { useI18n } from "./language-provider";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
+import { DeferralToggle, ItemNumber } from "./requirement-controls";
+import { ruleKinds } from "@/lib/requirement-display";
 
 export function MeetingRulesEditor({
   rules,
@@ -17,7 +19,7 @@ export function MeetingRulesEditor({
     onChange(rules.map((r) => (r.id === id ? { ...r, ...value } : r)));
   return (
     <div className="mt-4 space-y-5">
-      {(["conclusion", "topic", "decision", "action"] as const).map((kind) => (
+      {ruleKinds.map((kind) => (
         <fieldset key={kind}>
           <legend className="mb-2 text-sm font-medium">{tx(kindLabels[kind])}</legend>
           <div className="space-y-2">
@@ -26,6 +28,7 @@ export function MeetingRulesEditor({
               .map((r, i) => (
                 <div key={r.id}>
                   <div className="flex flex-wrap items-center gap-2">
+                    <ItemNumber index={i} />
                     <Input
                       aria-label={`${tx(kindLabels[kind])} ${i + 1}`}
                       className="min-w-40 flex-1"
@@ -47,6 +50,10 @@ export function MeetingRulesEditor({
                       <option value="recommended">{tx("Recommended")}</option>
                       <option value="record_only">{tx("Record only")}</option>
                     </select>
+                    <DeferralToggle
+                      enabled={r.allowsDeferral}
+                      onChange={(allowsDeferral) => patch(r.id, { allowsDeferral })}
+                    />
                     <Button
                       variant="ghost"
                       size="icon"
@@ -56,14 +63,6 @@ export function MeetingRulesEditor({
                       <Trash2 size={14} />
                     </Button>
                   </div>
-                  <label className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      checked={r.allowsDeferral}
-                      onChange={(e) => patch(r.id, { allowsDeferral: e.target.checked })}
-                    />
-                    {tx("Allow deferral to an owned, dated action")}
-                  </label>
                 </div>
               ))}
           </div>

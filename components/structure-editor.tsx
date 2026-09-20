@@ -26,11 +26,13 @@ import {
   roleIsRequired,
   moveItem,
   resizeSegment,
+  removeSegment,
   structureNames,
 } from "@/lib/meeting-structure";
 import { useI18n } from "./language-provider";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { ItemNumber } from "./requirement-controls";
 
 export function MeetingGoalsEditor({
   goals,
@@ -46,6 +48,7 @@ export function MeetingGoalsEditor({
       <div className="space-y-2">
         {goals.map((g, i) => (
           <div key={g.id} className="flex gap-2">
+            <ItemNumber index={i} />
             <Input
               aria-label={`${tx("Goal")} ${i + 1}`}
               value={label(g)}
@@ -129,6 +132,7 @@ function OptionalGoals({
       <div className="mt-2 space-y-2">
         {goals.map((g, i) => (
           <div key={g.id} className="flex gap-1">
+            <ItemNumber index={i} letters />
             <Input
               aria-label={`${tx("Recommended goal")} ${i + 1}`}
               placeholder={tx("Optional")}
@@ -142,15 +146,16 @@ function OptionalGoals({
                 )
               }
             />
-            <Button
-              variant="ghost"
-              size="icon"
-              disabled={i === 0}
-              aria-label={`${tx("Remove goal")} ${i + 1}`}
-              onClick={() => onChange(goals.filter((x) => x.id !== g.id))}
-            >
-              <Trash2 size={14} />
-            </Button>
+            {i > 0 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`${tx("Remove goal")} ${i + 1}`}
+                onClick={() => onChange(goals.filter((x) => x.id !== g.id))}
+              >
+                <Trash2 size={14} />
+              </Button>
+            )}
           </div>
         ))}
       </div>
@@ -224,6 +229,7 @@ function SortableRow({
         >
           <GripVertical size={16} className="pointer-events-none" />
         </span>
+        <ItemNumber index={index} />
         <div className="min-w-0 flex-1">{children}</div>
         <div className="flex shrink-0 flex-col">
           <Button
@@ -375,7 +381,7 @@ export function StructureEditor({
                 title={`${seg.builtinKey === seg.name ? tx(seg.name) : seg.name}: ${seg.minutes}`}
               >
                 <span className="truncate">
-                  {seg.builtinKey === seg.name ? tx(seg.name) : seg.name}
+                  {i + 1}. {seg.builtinKey === seg.name ? tx(seg.name) : seg.name}
                 </span>
               </div>
             ))}
@@ -420,6 +426,15 @@ export function StructureEditor({
                     })
                   }
                 />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  disabled={s.segments.length === 1}
+                  aria-label={`${tx("Remove segment")} ${i + 1}`}
+                  onClick={() => onChange({ ...s, segments: removeSegment(s.segments, seg.id) })}
+                >
+                  <Trash2 size={14} />
+                </Button>
               </div>
               <OptionalGoals
                 goals={seg.goals}

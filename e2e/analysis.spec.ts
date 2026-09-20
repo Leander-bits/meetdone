@@ -1,13 +1,14 @@
 import { test, expect } from "@playwright/test";
 import { requirementKey } from "../lib/models";
-import { freshDemo } from "../lib/meeting-state";
-import { demoComplete, english, saved } from "./helpers";
+import { freshDemo } from "../tests/fixtures/meeting-state";
+import { analyzeSample, demoComplete, english, saved } from "./helpers";
 
 test("blocked demo becomes ready after follow-up and automatically downloads Markdown", async ({
   page,
 }, info) => {
   await english(page);
   await page.goto("/meetings/demo-launch");
+  await analyzeSample(page);
   await expect(page.getByRole("status")).toContainText("Blocked");
   await expect(page.getByRole("article")).toHaveCount(4);
   await expect(
@@ -40,6 +41,7 @@ test("exceptions require a reason, preserve blocked readiness and download the r
 }) => {
   await english(page);
   await page.goto("/meetings/demo-launch");
+  await analyzeSample(page);
   await page.getByRole("button", { name: "End with Exception", exact: true }).click();
   await expect(
     page.getByRole("dialog").getByRole("button", { name: "End with Exception", exact: true }),
@@ -63,6 +65,7 @@ test("conversion requires owner and deadline and does not silently defer a block
 }) => {
   await english(page);
   await page.goto("/meetings/demo-launch");
+  await analyzeSample(page);
   await page.getByRole("button", { name: "Convert Gap to Action Item", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await expect(
@@ -130,7 +133,7 @@ test("custom AI analysis renders in one section, preserves evidence and invalida
       },
     });
   });
-  await page.getByRole("button", { name: "Analyze Meeting", exact: true }).click();
+  await page.getByRole("button", { name: "AI Analyze Meeting", exact: true }).click();
   await expect(page.getByRole("button", { name: "Analyzing", exact: true })).toBeDisabled();
   await expect(page.getByRole("heading", { name: "AI Analysis", exact: true })).toHaveCount(1);
   await expect(page.getByText("Discussed, not decided", { exact: true }).first()).toBeVisible();
@@ -146,7 +149,9 @@ test("custom AI analysis renders in one section, preserves evidence and invalida
   expect(m.analysis).toBeNull();
   expect(m.completionCheck).toBeNull();
 });
-test("AI failure stays private and demo fallback remains available", async ({ page }) => {
+test("AI failure stays private without fabricating analysis or offering demo fallback", async ({
+  page,
+}) => {
   await english(page);
   await page.goto("/meetings/demo-launch");
   const text =
@@ -158,16 +163,20 @@ test("AI failure stays private and demo fallback remains available", async ({ pa
       json: { error: "MISSING_API_KEY", detail: "private provider information" },
     }),
   );
-  await page.getByRole("button", { name: "Analyze Meeting", exact: true }).click();
+  await page.getByRole("button", { name: "AI Analyze Meeting", exact: true }).click();
   await expect(
     page.getByText("AI analysis is temporarily unavailable", { exact: true }),
   ).toBeVisible();
   await expect(page.getByText("private provider information")).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Transcript", exact: true })).toHaveValue(text);
-  await page.getByRole("button", { name: "Use Demo Analysis", exact: true }).click();
-  await page.getByRole("button", { name: /Scenario B/ }).click();
-  await page.getByRole("button", { name: "Use Demo Analysis", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("Ready to End");
+  await expect(page.getByRole("heading", { name: "AI Analysis", exact: true })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: /Demo Analysis|Reset Demo|Live Transcription/ }),
+  ).toHaveCount(0);
+  await expect(page.getByRole("status")).toContainText("Not analyzed");
+  const m = (await saved(page)).find((m: { id: string }) => m.id === "demo-launch");
+  expect(m.analysis).toBeNull();
+  expect(m.completionCheck).toBeNull();
 });
 test("TXT import handles 50,000 characters, invalid files and edit invalidation", async ({
   page,
@@ -203,7 +212,9 @@ test("TXT import handles 50,000 characters, invalid files and edit invalidation"
   });
   await expect(page.getByText("50,000 / 50,000", { exact: true })).toBeVisible();
   await page.getByRole("textbox", { name: "Transcript", exact: true }).fill("中".repeat(50_001));
-  await expect(page.getByRole("button", { name: "Analyze Meeting", exact: true })).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "AI Analyze Meeting", exact: true }),
+  ).toBeDisabled();
   await expect(page.getByRole("textbox", { name: "Transcript", exact: true })).toHaveValue(
     "中".repeat(50_001),
   );
@@ -213,6 +224,7 @@ test("requirement edits invalidate analysis and preserve user text across langua
 }) => {
   await english(page);
   await page.goto("/meetings/demo-launch");
+  await analyzeSample(page);
   await page.getByRole("button", { name: "Edit", exact: true }).click();
   await page.getByRole("button", { name: "Add goal", exact: true }).first().click();
   await page.getByLabel("Goal 2", { exact: true }).fill("不要自动翻译此目标");
@@ -283,6 +295,7 @@ test("mobile Chinese creation and English analysis fit without horizontal overfl
   await page.getByRole("button", { name: "关闭", exact: true }).click();
   await page.getByRole("button", { name: "EN", exact: true }).click();
   await page.goto("/meetings/demo-customer");
+  await analyzeSample(page, "customer-complete");
   await expect(page.getByRole("status")).toContainText("Ready to End");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: info.outputPath("analysis-mobile-en.png"), fullPage: true });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { freshDemo, endMeeting, prepareMeeting } from "@/lib/meeting-state";
+import { freshDemo, endMeeting, prepareMeeting } from "./fixtures/meeting-state";
 import { readMeetings, STORAGE_KEY, writeMeetings } from "@/lib/storage";
 function memoryStorage(initial?: string) {
   const map = new Map<string, string>(initial ? [[STORAGE_KEY, initial]] : []);
@@ -18,7 +18,7 @@ describe("versioned local persistence", () => {
     expect(result.warning).toBeNull();
     expect(result.meetings[0].requirements.items.some((r) => r.kind === "speaker")).toBe(false);
     expect(result.meetings[0].transcript.text).toBe(m.transcript.text);
-    expect(result.meetings[0].analysis).toEqual(m.analysis);
+    expect(result.meetings[0].analysis).toBeNull();
   });
   it("rejects duplicated requirement IDs in storage", () => {
     const m = freshDemo();
@@ -31,13 +31,19 @@ describe("versioned local persistence", () => {
     const storage = memoryStorage();
     const m = freshDemo();
     m.actionItems[0].description = "";
+    m.actionItems[0].source = "host";
     writeMeetings(storage, [m]);
     expect(readMeetings(storage).warning).toBeNull();
     expect(readMeetings(storage).meetings[0].actionItems[0].description).toBe("");
   });
-  it("loads a pre-analyzed demo on first visit", () => {
+  it("loads three unanalyzed samples on first visit", () => {
     const result = readMeetings(memoryStorage());
-    expect(result.meetings[0].analysis?.scenarioId).toBe("launch-incomplete");
+    expect(result.meetings).toHaveLength(3);
+    expect(
+      result.meetings.every(
+        (m) => m.analysis === null && m.completionCheck === null && m.transcript.text.length > 0,
+      ),
+    ).toBe(true);
   });
   it("round-trips requirements, analysis, exceptions, and summary", () => {
     const storage = memoryStorage();

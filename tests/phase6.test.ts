@@ -23,7 +23,7 @@ import {
   prepareMeeting,
   endMeeting,
   convertGap,
-} from "@/lib/meeting-state";
+} from "./fixtures/meeting-state";
 import { blankTemplate, readCustomTemplates, TEMPLATES_STORAGE_KEY } from "@/lib/custom-templates";
 import { templates } from "@/lib/templates";
 import { migrateMeeting, readMeetings, STORAGE_KEY } from "@/lib/storage";

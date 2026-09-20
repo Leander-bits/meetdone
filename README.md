@@ -13,7 +13,7 @@ npm ci
 npm run dev
 ```
 
-Open http://localhost:3000. All three demos work without an API key.
+Open http://localhost:3000. All three sample meetings can be opened and edited without a key. Analysis requires DeepSeek configuration and an explicit click on AI Analyze Meeting.
 
 ## DeepSeek and Vercel
 
@@ -45,7 +45,7 @@ Validated MeetingAnalysis + verbatim evidence
 CompletionCheck → UI → explicit end action → summary.md
 ```
 
-- `MockAnalysisProvider` accepts exact demo transcripts and compatible requirements only. It never invents analysis for edited/custom text.
+- Analysis is AI-only. Mock extraction and fixed analysis fixtures live under `tests/fixtures/`; they are never loaded by the application.
 - `DeepSeekAnalysisProvider` lives in `lib/server/` and imports `server-only`. The browser calls `POST /api/analyze-meeting`. The API key is read only via `process.env.DEEPSEEK_API_KEY`.
 - Zod validates requests, model output and normalized analysis. Quotes and speaker attribution are verified against numbered transcript lines. Unsupported findings remain missing; unsupported owners/deadlines are null.
 - The model extracts facts, never readiness. Presence is not an opinion; discussion is not a decision. Required matrix participation is evaluated per stage. Order is guidance only.
@@ -62,30 +62,30 @@ The full-screen creation flow has three pages:
 
 1. Name, date, start/end time, IANA timezone and participants. Email suggests an editable display name. Discarding entered data requires confirmation.
 2. Select a built-in/custom template or start a blank custom template. Only custom templates can be deleted, after confirmation.
-3. Edit goals and select a structure. The first goal is protected. Optional rules can be edited below; Save as Template is available here, outside the selection page.
+3. Edit goals and select a structure. The first goal is protected. Meeting Rules are always visible in Topics, Required Conclusions, Decisions, Action Outputs order; Save as Template is available here, outside the selection page.
 
 Four structures:
 
-| Structure         | Configuration and validation                                                                                                                                    |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Time Sequence     | 5-minute segments cover the entire meeting. Resizing borrows time from adjacent segments. Adding borrows five minutes. Reordering never changes total duration. |
-| Speaker Sequence  | Participant roles, required/optional input, draggable order and reset. Out-of-order input still counts.                                                         |
-| Stage Progression | Named stages, optional recommended goals, custom stages, reorder and reset. Stage coverage is required; recommended goals generate follow-ups.                  |
-| Stage × Speaker   | Participants assigned to one or more stages; requirement level and order are independent in each stage. Every stage needs an assignment.                        |
+| Structure         | Configuration and validation                                                                                                                                                                                    |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Time Sequence     | 5-minute segments cover the entire meeting. Resizing borrows time from adjacent segments. Adding borrows five minutes; deleting transfers time to an adjacent segment. Reordering never changes total duration. |
+| Speaker Sequence  | Participant roles, required/optional input, draggable order and reset. Out-of-order input still counts.                                                                                                         |
+| Stage Progression | Named stages, optional recommended goals, custom stages, reorder and reset. Stage coverage is required; recommended goals generate follow-ups.                                                                  |
+| Stage × Speaker   | Participants assigned to one or more stages; requirement level and order are independent in each stage. Every stage needs an assignment.                                                                        |
 
-Native drag handles have explicit up/down controls for keyboard and touch. Matrix assignment also supports a select control and click-to-select chips. Recommended goals allow empty values, retain one visible input, and protect the first input.
+Native drag handles have explicit up/down controls for keyboard and touch. Matrix assignment also supports a select control and click-to-select chips. Stages, segments, speakers and rule inputs are numbered in their current order. Recommended goals use letters, allow empty values and hide deletion for the first input. Creation and editing share these controls. Deferral uses an icon toggle with a tooltip. Invalid start/end times are highlighted immediately without changing input.
 
 Schedules currently cover same-day meetings from 5 minutes to 12 hours, in five-minute increments. Timezone is stored with the meeting; there is no calendar invitation or scheduling integration.
 
 ## Workspace and demos
 
-The home page has Create Meeting and Existing Meetings modules. First use loads three fully configured fictional meetings with Chinese dialogue and exact evidence fixtures:
+The home page has Create Meeting and Existing Meetings modules. First use loads three fully configured fictional meetings with Chinese dialogue and no analysis:
 
-- Mobile feature launch review: time sequence. Scenario A has four blockers. Scenario B adds Sales input, a final decision, an action owner and an action deadline.
+- Mobile feature launch review: time sequence. The sample intentionally leaves Sales input, a final decision, an action owner and a deadline unresolved. Add discussion in the editor and re-analyze to resolve them.
 - Two-week sprint retrospective: stage progression, with a deferred tooling topic.
 - Customer onboarding progress: stage/speaker matrix, with noncritical follow-ups.
 
-The workspace shows transcript and bullet-point requirements side by side, followed by one full-width analysis section. Point-by-point evidence, six final evaluation questions and blocking/follow-up issues come from structured state.
+The workspace shows transcript and numbered requirements side by side, followed by one full-width analysis section. Point-by-point evidence, six final evaluation questions and blocking/follow-up issues come from structured state.
 
 Continue Discussion focuses the transcript. Convert Gap to Action Item requires description, owner and date. Blocked meetings require End with Exception and a reason. Ready meetings have End Meeting. The end action runs the current deterministic check before committing a lifecycle change.
 
@@ -100,17 +100,18 @@ Chinese is the default. 中文 / EN is persisted under `meetdone.language`. The 
 - `meetdone.workspace.v1` now stores envelope **version 3**; versions 1 and 2 are read per record.
 - `meetdone.templates.v1` stores envelope **version 2**, with legacy custom-template migration.
 - Older meetings retain their requirements, transcript and existing summary. Missing scheduling/participant metadata is marked for review, without fabricating actual people. Corrupt records do not prevent valid records loading. Duplicate IDs are rejected.
+- Active legacy mock analyses are cleared on load, along with mock actions and completion checks; original content and host-created actions remain. Genuine AI analyses and historical ended summaries are preserved. Archived mock summaries display as saved summaries, never as AI results.
 - Recovery copies use `meetdone.workspace.recovery` and `meetdone.templates.recovery` when browser storage permits. The first backup is preserved.
 - Meeting/template deletion requires UI confirmation. Cancel does not write. Template deletion never deletes meetings. Deleting every meeting preserves an empty workspace.
 - Storage errors leave current in-memory work usable and display a warning. Browser storage is local to the current origin/browser; there is no account synchronization.
 
 ## Transcript analysis and limitations
 
-For a custom transcript, configure DeepSeek, create/open a meeting, paste speaker-labeled text or import `.txt`, then click Analyze Meeting. Inspect evidence and unresolved issues before ending.
+For a custom transcript, configure DeepSeek, create/open a meeting, paste speaker-labeled text or import `.txt`, then click AI Analyze Meeting. Inspect evidence and unresolved issues before ending.
 
 - Transcript limit: 30–50,000 characters; request limit: 650,000 bytes; 80 compiled requirements; maximum label length 500 characters.
 - Invalid extension, malformed UTF-8, binary content, read failures and oversized imports leave the current editor unchanged. Oversized pasted content stays editable and is never truncated.
-- Missing key, timeout, provider failure or malformed evidence returns a short localized error. Demo fallback remains available; it explicitly loads a demo transcript rather than pretending to analyze custom content.
+- Missing key, timeout, provider failure or malformed evidence returns a short localized error. No fallback or fabricated findings are produced. The transcript remains editable for another AI attempt.
 - Deadlines must be explicit ISO dates (`YYYY-MM-DD`); relative dates remain unknown. Semantic extraction can still be wrong even when a quote is valid, so evidence remains inspectable.
 - No audio/video upload, recording, Teams, Feishu, Zoom or Google Meet APIs. `lib/live-transcription.ts` isolates a future Deepgram/STT contract: Microphone → STT/diarization → Transcript → existing pipeline. Real capture would require private server-side credentials, session authorization, transport and real-audio testing.
 - No durable rate limiting or authentication. Limits bound each analysis request, not aggregate provider spend.
@@ -125,13 +126,13 @@ components/
   structure-editor.tsx     Four editors, goals, ordering and assignment
   meeting-rules-editor.tsx  Reusable rules and deferral settings
   meeting-workspace.tsx     Two-column input + single analysis section
-  transcript-panel.tsx     TXT, AI and demo fallback
+  transcript-panel.tsx     Text import and explicit AI analysis
   gap-check.tsx             Conversion and explicit exceptions
   meeting-summary.tsx      Structured summary and re-download
   language-provider.tsx, workspace-store.tsx
 lib/
   models.ts, meeting-structure.ts, templates.ts, custom-templates.ts
-  demo-configuration.ts, demo-transcripts.ts, demo.ts
+  demo-configuration.ts, demo-transcripts.ts, sample-meetings.ts, meeting-factory.ts
   analysis-contract.ts, analysis-provider.ts, analysis-client.ts
   server/deepseek-provider.ts, server/extraction.ts
   rule-engine.ts, meeting-state.ts, final-evaluation.ts

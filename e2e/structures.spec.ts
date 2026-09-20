@@ -14,6 +14,8 @@ test("native speaker dragging and reset work alongside keyboard controls", async
   await rows.nth(1).evaluate((el) => el.scrollIntoView({ block: "center" }));
   await rows.first().locator('[draggable="true"]').dragTo(rows.nth(1));
   await expect(rows.first()).toContainText("max");
+  await expect(rows.first().locator("[data-item-number]").first()).toHaveText("1.");
+  await expect(rows.nth(1).locator("[data-item-number]").first()).toHaveText("2.");
   await page.getByRole("button", { name: "Reset order", exact: true }).click();
   await expect(rows.first()).toContainText("zhaojiaheng");
 });
@@ -52,7 +54,7 @@ test("timeline resizing, adding and keyboard reordering preserve full duration",
       .locator("[data-sortable]")
       .first()
       .getByRole("button", { name: "Remove goal 1", exact: true }),
-  ).toBeDisabled();
+  ).toHaveCount(0);
   await page.screenshot({ path: info.outputPath("timeline.png"), fullPage: true });
   await page.getByRole("button", { name: "Create Meeting", exact: true }).click();
   const m = (await saved(page))[0];

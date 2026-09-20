@@ -183,6 +183,16 @@ export function resizeSegment(segments: MeetingStructure["segments"], id: string
   next[index].minutes = target;
   return next;
 }
+export function removeSegment(segments: MeetingStructure["segments"], id: string) {
+  const index = segments.findIndex((segment) => segment.id === id);
+  if (index < 0 || segments.length <= 1) return segments;
+  const remaining = segments.filter((segment) => segment.id !== id);
+  const receiver = Math.min(index, remaining.length - 1);
+  return remaining.map((segment, i) =>
+    i === receiver ? { ...segment, minutes: segment.minutes + segments[index].minutes } : segment,
+  );
+}
+
 export function addSegment(segments: MeetingStructure["segments"], name: string, id: string) {
   const donor = segments.findIndex((s) => s.minutes >= 10);
   if (donor < 0) return segments;

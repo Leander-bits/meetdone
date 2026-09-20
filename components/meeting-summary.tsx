@@ -50,7 +50,7 @@ export function MeetingSummaryView({ meeting: m }: { meeting: Meeting }) {
           {tx(
             m.analysis
               ? m.analysis.provider === "demo"
-                ? "Demo Analysis"
+                ? "Saved summary"
                 : "AI Analysis"
               : "Saved summary",
           )}

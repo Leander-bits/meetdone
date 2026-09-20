@@ -15,10 +15,11 @@ import {
 import {
   compileRequirements,
   durationMinutes,
-  structureNames,
   validConfiguration,
   scheduleText,
 } from "@/lib/meeting-structure";
+import { MeetingRequirementsView } from "./meeting-requirements";
+import { orderedRequirements, requirementDisplay } from "@/lib/requirement-display";
 import { finalEvaluation } from "@/lib/final-evaluation";
 import { downloadSummary } from "@/lib/summary-download";
 import { getTemplate } from "@/lib/templates";
@@ -26,7 +27,7 @@ import { useI18n } from "./language-provider";
 import { useWorkspace } from "./workspace-store";
 import { AppHeader, EvidenceList, LoadingWorkspace, Notice, meetingStatus } from "./shared";
 import { TranscriptPanel } from "./transcript-panel";
-import { coverageFor } from "./coverage";
+import { coverageFor } from "@/lib/coverage";
 import { ActionItems } from "./action-items";
 import { GapCheck } from "./gap-check";
 import { MeetingSummaryView } from "./meeting-summary";
@@ -71,10 +72,6 @@ function EditConfiguration({
             <Input value={title} maxLength={140} onChange={(e) => setTitle(e.target.value)} />
           </label>
           <MeetingGoalsEditor goals={goals} onChange={setGoals} />
-          <details>
-            <summary>{tx("Reusable rules")}</summary>
-            <MeetingRulesEditor rules={rules} onChange={setRules} />
-          </details>
           <StructureEditor
             structure={structure}
             onChange={setStructure}
@@ -83,6 +80,10 @@ function EditConfiguration({
             duration={duration || 30}
             template={getTemplate(m.templateId)}
           />
+          <section>
+            <h2 className="text-lg font-semibold">{tx("Meeting Rules")}</h2>
+            <MeetingRulesEditor rules={rules} onChange={setRules} />
+          </section>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={close}>
@@ -118,104 +119,9 @@ function EditConfiguration({
   );
 }
 
-function RequirementsView({ meeting: m }: { meeting: Meeting }) {
-  const { t: tx, label } = useI18n();
-  const s = m.structure;
-  const name = (x: { name: string; builtinKey?: string }) =>
-    x.builtinKey === x.name ? tx(x.name) : x.name;
-  const stageList = s.type === "time" ? s.segments : s.stages;
-  const structureRecorded = !!(s.segments.length || s.stages.length || s.speakerOrder.length);
-  return (
-    <div className="space-y-5 text-sm leading-6">
-      <div>
-        <h3 className="mb-2 font-semibold">{tx("Meeting Goals")}</h3>
-        <ul className="list-disc space-y-1 pl-5">
-          {m.goals.map((g) => (
-            <li key={g.id}>{label(g)}</li>
-          ))}
-        </ul>
-      </div>
-      <div>
-        <h3 className="mb-2 font-semibold">
-          {tx(structureRecorded ? structureNames[s.type] : "Structure not recorded")}
-        </h3>
-        {s.type === "speaker" ? (
-          <ol className="list-decimal space-y-2 pl-5">
-            {s.speakerOrder.map((id) => {
-              const p = m.participants.find((p) => p.id === id);
-              return (
-                p && (
-                  <li key={id}>
-                    {p.name}（{p.roleLabel ?? tx(p.role)}）{" "}
-                    <span className="text-xs text-muted-foreground">
-                      {tx(
-                        s.requiredSpeakerIds.includes(id) ? "Required Speaker" : "Optional Speaker",
-                      )}
-                    </span>
-                  </li>
-                )
-              );
-            })}
-          </ol>
-        ) : (
-          <ul className="list-disc space-y-3 pl-5">
-            {stageList.map((stage) => (
-              <li key={stage.id}>
-                <span className="font-medium">{name(stage)}</span>
-                {"minutes" in stage && (
-                  <span className="ml-2 text-xs text-muted-foreground">
-                    {stage.minutes} {tx("minutes")}
-                  </span>
-                )}
-                {!!stage.goals.filter((g) => g.text.trim()).length && (
-                  <ul className="list-disc pl-4 text-muted-foreground">
-                    {stage.goals
-                      .filter((g) => g.text.trim())
-                      .map((g) => (
-                        <li key={g.id}>{g.builtinKey === g.text ? tx(g.text) : g.text}</li>
-                      ))}
-                  </ul>
-                )}
-                {s.type === "matrix" && "assignments" in stage && (
-                  <ul className="pl-1">
-                    {stage.assignments.map((a) => {
-                      const p = m.participants.find((p) => p.id === a.participantId);
-                      return (
-                        p && (
-                          <li key={p.id}>
-                            {p.name}（{p.roleLabel ?? tx(p.role)}） ·{" "}
-                            {tx(a.required ? "Required Speaker" : "Optional Speaker")}
-                          </li>
-                        )
-                      );
-                    })}
-                  </ul>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-      <ul className="list-disc space-y-2 border-t pt-4 pl-5">
-        {m.requirements.items
-          .filter(
-            (r) =>
-              r.kind !== "goal" &&
-              (!structureRecorded ||
-                (!r.id.startsWith("structure-") && !r.id.startsWith("speaker-"))) &&
-              r.level !== "record_only",
-          )
-          .map((r) => (
-            <li key={r.id}>{label(r)}</li>
-          ))}
-      </ul>
-    </div>
-  );
-}
-
 export function MeetingWorkspace({ id }: { id: string }) {
   const { t: tx, label, title, locale } = useI18n();
-  const { loaded, meetings, warning, updateMeeting, resetDemo } = useWorkspace();
+  const { loaded, meetings, warning, updateMeeting } = useWorkspace();
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -234,6 +140,11 @@ export function MeetingWorkspace({ id }: { id: string }) {
     );
   const ended = m.lifecycle !== "active";
   const check = evaluateMeeting(m);
+  const nextSpeaker = m.structure.speakerOrder
+    .map((id) =>
+      m.requirements.items.find((r) => r.id === `speaker-all-${id}` && r.level === "required"),
+    )
+    .find((r) => r && !coverageFor(m, r).complete);
   const perform = (fn: (m: Meeting) => Meeting) => {
     try {
       updateMeeting(id, fn);
@@ -312,7 +223,7 @@ export function MeetingWorkspace({ id }: { id: string }) {
                     {tx("Edit")}
                   </Button>
                 </div>
-                <RequirementsView meeting={m} />
+                <MeetingRequirementsView meeting={m} />
               </section>
             </div>
             {m.analysis && !pending && (
@@ -323,7 +234,7 @@ export function MeetingWorkspace({ id }: { id: string }) {
               >
                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                   <h2 id="analysis-heading" className="text-xl font-semibold">
-                    {tx(m.analysis.provider === "demo" ? "Demo Analysis" : "AI Analysis")}
+                    {tx("AI Analysis")}
                   </h2>
                   <p
                     className={`font-semibold ${check.readiness === "READY" ? "text-primary" : "text-destructive"}`}
@@ -333,25 +244,20 @@ export function MeetingWorkspace({ id }: { id: string }) {
                       ` · ${tx("{count} issues", { count: check.blockingGaps.length })}`}
                   </p>
                 </div>
+                <h3 className="mb-3 font-semibold">{tx("Requirement Evaluation")}</h3>
                 <div className="divide-y">
-                  {m.requirements.items
+                  {orderedRequirements(m.requirements.items)
                     .filter((r) => r.level !== "record_only")
                     .map((r) => {
                       const c = coverageFor(m, r);
-                      const topic = m.requirements.items.find((x) => x.id === r.topicId);
                       return (
                         <div key={r.id} className={`px-3 py-3 ${c.complete ? "bg-primary/5" : ""}`}>
                           <div className="flex items-start justify-between gap-4">
                             <p
-                              className={`text-sm ${c.complete ? "font-medium text-primary" : ""}`}
+                              className={`min-w-0 break-words text-sm ${c.complete ? "font-medium text-primary" : ""}`}
                             >
                               {c.complete && <Check size={14} className="mr-2 inline" />}
-                              {label(r)}
-                              {topic && (
-                                <span className="ml-2 text-xs text-muted-foreground">
-                                  {label(topic)}
-                                </span>
-                              )}
+                              {requirementDisplay(m, r, tx, label)}
                             </p>
                             <span
                               className={`shrink-0 text-xs ${c.complete ? "text-primary" : "text-muted-foreground"}`}
@@ -367,13 +273,7 @@ export function MeetingWorkspace({ id }: { id: string }) {
                 {m.structure.type === "speaker" && (
                   <p className="mt-3 text-sm text-muted-foreground">
                     {tx("Next required speaker")}:{" "}
-                    {m.structure.speakerOrder
-                      .map((id) =>
-                        m.requirements.items.find(
-                          (r) => r.id === `speaker-all-${id}` && r.level === "required",
-                        ),
-                      )
-                      .find((r) => r && !coverageFor(m, r).complete)?.label ?? tx("Complete")}
+                    {nextSpeaker ? label(nextSpeaker) : tx("Complete")}
                   </p>
                 )}
                 <section className="mt-7">
@@ -434,20 +334,6 @@ export function MeetingWorkspace({ id }: { id: string }) {
               </section>
             )}
           </>
-        )}
-        {m.isDemo && (
-          <Button
-            className="mt-6"
-            size="sm"
-            variant="ghost"
-            disabled={pending}
-            onClick={() => {
-              resetDemo(m.id);
-              setError(null);
-            }}
-          >
-            {tx("Reset Demo")}
-          </Button>
         )}
       </main>
       {editing && (

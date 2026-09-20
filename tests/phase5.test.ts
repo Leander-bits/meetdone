@@ -6,9 +6,9 @@ import {
   saveCustomTemplate,
   writeCustomTemplates,
 } from "@/lib/custom-templates";
-import { createMeeting, scenarios } from "@/lib/demo";
+import { createMeeting, scenarios } from "./fixtures/demo";
 import { templates } from "@/lib/templates";
-import { freshDemo, prepareMeeting, updateTranscript } from "@/lib/meeting-state";
+import { freshDemo, prepareMeeting, updateTranscript } from "./fixtures/meeting-state";
 import {
   analysisRequestSchema,
   MAX_REQUEST_BYTES,

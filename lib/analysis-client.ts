@@ -39,7 +39,7 @@ export async function requestAnalysis(
       throw new AnalysisError(allowed.includes(body?.error) ? body.error : "PROVIDER_ERROR");
     }
     const parsed = analysisSchema.safeParse(body.analysis);
-    if (!parsed.success) throw new AnalysisError("INVALID_OUTPUT");
+    if (!parsed.success || parsed.data.provider !== "deepseek") throw new AnalysisError("INVALID_OUTPUT");
     return parsed.data;
   } catch (error) {
     if (error instanceof AnalysisError) throw error;

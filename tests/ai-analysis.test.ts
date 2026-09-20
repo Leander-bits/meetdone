@@ -4,7 +4,7 @@ import { POST } from "@/app/api/analyze-meeting/route";
 import { DeepSeekAnalysisProvider } from "@/lib/server/deepseek-provider";
 import { normalizeExtraction } from "@/lib/server/extraction";
 import { analysisSchema } from "@/lib/models";
-import { freshDemo, applyAnalysis, evaluateMeeting, updateTranscript } from "@/lib/meeting-state";
+import { freshDemo, applyAnalysis, evaluateMeeting, updateTranscript } from "./fixtures/meeting-state";
 import { AnalysisInput, MAX_TRANSCRIPT_LENGTH } from "@/lib/analysis-contract";
 
 function input(): AnalysisInput {

@@ -1,5 +1,3 @@
-import { demoAnalysisProvider } from "./analysis-provider";
-import { createMeeting, scenarios } from "./demo";
 import {
   ActionItem,
   Gap,
@@ -57,13 +55,12 @@ export function updateRequirements(m: Meeting, requirements: MeetingRequirements
   };
 }
 export function updateTranscript(m: Meeting, text: string, fileName?: string): Meeting {
-  const scenario = scenarios.find((s) => s.templateId === m.templateId && s.transcript === text);
   return {
     ...changed(m),
     transcript: {
       text,
       revision: m.transcript.revision + 1,
-      scenarioId: scenario?.id ?? null,
+      scenarioId: null,
       ...(fileName ? { fileName } : {}),
     },
     analysis: null,
@@ -72,10 +69,6 @@ export function updateTranscript(m: Meeting, text: string, fileName?: string): M
       .filter((a) => a.source === "host")
       .map((a) => ({ ...a, evidenceIds: [] })),
   };
-}
-export function analyzeMeeting(m: Meeting): Meeting {
-  const analysis = demoAnalysisProvider.analyze(m);
-  return applyAnalysis(m, analysis);
 }
 export function applyAnalysis(
   m: Meeting,
@@ -97,11 +90,6 @@ export function applyAnalysis(
     gapResolutions: m.gapResolutions.filter((r) => r.type === "action"),
   };
   return analysis.provider === "demo" ? next : { ...next, completionCheck: evaluateMeeting(next) };
-}
-export function loadScenario(m: Meeting, id: string): Meeting {
-  const scenario = scenarios.find((s) => s.id === id && s.templateId === m.templateId);
-  if (!scenario) throw new Error("Scenario does not match this meeting template.");
-  return updateTranscript(m, scenario.transcript);
 }
 export function updateActionItems(m: Meeting, actionItems: ActionItem[]): Meeting {
   return { ...changed(m), actionItems };
@@ -196,18 +184,4 @@ export function endMeeting(m: Meeting, exceptionReason?: string): Meeting {
     ],
   };
   return { ...ended, summary: buildSummary(ended, now) };
-}
-export function freshDemo(): Meeting {
-  return analyzeMeeting(
-    loadScenario(createMeeting("launch", "demo-launch", true), "launch-incomplete"),
-  );
-}
-
-export function freshDemos(): Meeting[] {
-  return [
-    freshDemo(),
-    ...["retro", "customer"].map((id) =>
-      analyzeMeeting(loadScenario(createMeeting(id, `demo-${id}`, true), `${id}-complete`)),
-    ),
-  ];
 }

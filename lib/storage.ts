@@ -1,6 +1,6 @@
 import { validRequirementLists } from "./requirements";
 import { Meeting, meetingSchema } from "./models";
-import { freshDemos } from "./meeting-state";
+import { sampleMeetings } from "./sample-meetings";
 export const STORAGE_KEY = "meetdone.workspace.v1";
 export type StorageLike = Pick<Storage, "getItem" | "setItem">;
 
@@ -34,6 +34,7 @@ export function migrateMeeting(record: unknown): Meeting | null {
   );
   if (!result.success) return null;
   const m = result.data;
+  const wasDemoAnalysis = m.analysis?.provider === "demo";
   if (m.lifecycle === "active" && !validRequirementLists(m.requirements)) return null;
   const stale =
     m.analysis &&
@@ -48,6 +49,16 @@ export function migrateMeeting(record: unknown): Meeting | null {
     m.lifecycle = "active";
     m.completionCheck = null;
   }
+  // Archived summaries remain readable. Active mock results must be re-analyzed with AI.
+  if (m.lifecycle === "active" && wasDemoAnalysis) {
+    m.analysis = null;
+    m.completionCheck = null;
+    m.actionItems = m.actionItems
+      .filter((a) => a.source === "host")
+      .map((a) => ({ ...a, evidenceIds: [] }));
+    m.gapResolutions = [];
+    m.summary = null;
+  }
   // Preserve original requirements, transcripts, and ended summaries; never claim that
   // synthetic migration defaults have been analyzed.
   return m;
@@ -59,7 +70,7 @@ export function readMeetings(storage: StorageLike): {
   let raw: string | null = null;
   try {
     raw = storage.getItem(STORAGE_KEY);
-    if (!raw) return { meetings: freshDemos(), warning: null };
+    if (!raw) return { meetings: sampleMeetings(), warning: null };
     const data = JSON.parse(raw);
     if (![1, 2, 3].includes(data.version) || !Array.isArray(data.meetings)) throw new Error();
     const meetings: Meeting[] = [];
@@ -70,7 +81,13 @@ export function readMeetings(storage: StorageLike): {
       else skipped = true;
     }
     // Keep a recovery copy before any subsequent edits overwrite the workspace.
-    if (skipped || data.version < 3) {
+    if (
+      skipped ||
+      data.version < 3 ||
+      data.meetings.some(
+        (m: { analysis?: { provider?: string } }) => m?.analysis?.provider === "demo",
+      )
+    ) {
       try {
         if (!storage.getItem("meetdone.workspace.recovery"))
           storage.setItem("meetdone.workspace.recovery", raw);
@@ -92,7 +109,7 @@ export function readMeetings(storage: StorageLike): {
       /* storage unavailable */
     }
     return {
-      meetings: freshDemos(),
+      meetings: sampleMeetings(),
       warning:
         "Saved data could not be read. A fresh demo is available; save a change to start a new local workspace.",
     };

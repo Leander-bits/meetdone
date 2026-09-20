@@ -10,9 +10,9 @@ import {
   updateActionItems,
   updateRequirements,
   updateTranscript,
-} from "@/lib/meeting-state";
-import { createMeeting } from "@/lib/demo";
-import { demoAnalysisProvider } from "@/lib/analysis-provider";
+} from "./fixtures/meeting-state";
+import { createMeeting } from "./fixtures/demo";
+import { demoAnalysisProvider } from "./fixtures/analysis-provider";
 import { ActionItem, Gap, Meeting } from "@/lib/models";
 
 function complete() {
