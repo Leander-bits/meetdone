@@ -14,7 +14,7 @@ export function validRequirementLists(requirements: MeetingRequirements): boolea
   return (
     items.length <= MAX_REQUIREMENTS &&
     new Set(items.map((r) => r.id)).size === items.length &&
-    minimumKinds.every((kind) => items.some((r) => r.kind === kind)) &&
+    items.some((r) => r.kind === "goal") &&
     items.every(
       (r) =>
         r.label.trim().length > 0 &&
@@ -30,6 +30,7 @@ export function removeRequirement(
   const item = requirements.items.find((r) => r.id === id);
   if (
     !item ||
+    (item.kind === "goal" && requirements.items.find((r) => r.kind === "goal")?.id === id) ||
     (minimumKinds.includes(item.kind) &&
       requirements.items.filter((r) => r.kind === item.kind).length <= 1)
   )

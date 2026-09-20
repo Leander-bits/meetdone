@@ -8,22 +8,17 @@ function req(
 ): Requirement {
   return { id, kind, label, builtinKey: label, level: "required", allowsDeferral: false, ...extra };
 }
-export const templates: MeetingTemplate[] = [
+const legacyDefaults = [
   {
     id: "launch",
     name: "Product Launch Decision",
-    description: "Align the team on readiness and make a clear Go / No-Go call.",
-    defaultTitle: "Bosch CE T4 Station Data Editor release review",
     requirements: {
       revision: 1,
       items: [
-        req("l-goal", "goal", "Assess Data Editor production readiness and remaining gaps"),
+        req("l-goal", "goal", "Assess release readiness"),
         req("l-conclusion", "conclusion", "Agree on the launch readiness assessment"),
         req("l-topic-readiness", "topic", "Launch readiness"),
         req("l-topic-risks", "topic", "Launch risks and mitigation"),
-        req("l-product", "speaker", "Devi · Product", { topicId: "l-topic-readiness" }),
-        req("l-engineering", "speaker", "Max · Engineering", { topicId: "l-topic-readiness" }),
-        req("l-sales", "speaker", "Sun · Operations", { topicId: "l-topic-readiness" }),
         req("l-decision", "decision", "Make the final Go / No-Go decision"),
         req("l-action-comms", "action", "Send the release notice"),
         req("l-action-monitor", "action", "Publish the release monitoring checklist"),
@@ -39,20 +34,12 @@ export const templates: MeetingTemplate[] = [
   {
     id: "retro",
     name: "Project Retrospective",
-    description: "Turn lessons learned into agreed improvements with clear ownership.",
-    defaultTitle: "Bosch CE T4 Pipeline V2 sprint retrospective",
     requirements: {
       revision: 1,
       items: [
-        req(
-          "r-goal",
-          "goal",
-          "Review the document-to-structured-data sprint and identify improvements",
-        ),
+        req("r-goal", "goal", "Review the sprint and agree on improvements"),
         req("r-conclusion", "conclusion", "Agree on the main lesson from the sprint"),
         req("r-topic", "topic", "Delivery successes and friction"),
-        req("r-lead", "speaker", "Devi · Team lead", { topicId: "r-topic" }),
-        req("r-dev", "speaker", "Jiaheng · Engineering", { topicId: "r-topic" }),
         req("r-decision", "decision", "Choose one improvement for the next sprint"),
         req("r-action", "action", "Trial the agreed improvement"),
         req("r-extra", "topic", "Explore a longer-term tooling improvement", {
@@ -68,16 +55,12 @@ export const templates: MeetingTemplate[] = [
   {
     id: "customer",
     name: "Customer Progress Meeting",
-    description: "Confirm progress, surface blockers, and agree on the next milestone.",
-    defaultTitle: "Bosch Manufacturing Solutions · CE T4 project progress",
     requirements: {
       revision: 1,
       items: [
         req("c-goal", "goal", "Confirm the customer is on track for the next milestone"),
         req("c-conclusion", "conclusion", "Agree on the current delivery status"),
         req("c-topic", "topic", "Milestone progress and customer blockers"),
-        req("c-csm", "speaker", "Alex · Project lead", { topicId: "c-topic" }),
-        req("c-client", "speaker", "Sun · Customer", { topicId: "c-topic" }),
         req("c-decision", "decision", "Confirm the next milestone and acceptance criteria"),
         req("c-action", "action", "Share the updated milestone plan"),
         req("c-extra", "topic", "Review additional training needs", {
@@ -91,6 +74,49 @@ export const templates: MeetingTemplate[] = [
     },
   },
 ];
+export const templates: MeetingTemplate[] = legacyDefaults.map((t) => ({
+  id: t.id,
+  name: t.name,
+  structureType: t.id === "launch" ? "time" : t.id === "retro" ? "stages" : "matrix",
+  defaultGoals: t.requirements.items
+    .filter((r) => r.kind === "goal")
+    .map((r) => ({
+      ...r,
+      label:
+        t.id === "launch"
+          ? "Assess release readiness"
+          : t.id === "retro"
+            ? "Review the sprint and agree on improvements"
+            : r.label,
+      builtinKey:
+        t.id === "launch"
+          ? "Assess release readiness"
+          : t.id === "retro"
+            ? "Review the sprint and agree on improvements"
+            : r.label,
+    })),
+  defaultStages: (t.id === "launch"
+    ? ["Opening", "Background", "Discussion", "Decision", "Action Items"]
+    : ["Background", "Proposal", "Risks", "Decision", "Next Steps"]
+  ).map((name, i) => ({
+    id: `stage-${i}`,
+    name,
+    builtinKey: name,
+    goals: [{ id: `stage-goal-${i}`, text: "" }],
+    custom: false,
+  })),
+  roleRequirements: (t.id === "launch"
+    ? ["Product", "Engineering", "Sales"]
+    : t.id === "retro"
+      ? ["Product", "Engineering"]
+      : ["Sales", "Customer"]
+  ).map((role, i) => ({
+    id: `role-${i}`,
+    role: role as "Product" | "Engineering" | "Sales" | "Customer",
+    required: true,
+  })),
+  rules: t.requirements.items.filter((r) => !["goal", "speaker", "agenda"].includes(r.kind)),
+}));
 export function getTemplate(id: MeetingTemplate["id"]) {
   return templates.find((t) => t.id === id);
 }

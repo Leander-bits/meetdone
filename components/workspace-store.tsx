@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useSyncExternalStore } from "react";
 import { Meeting, MeetingTemplate } from "@/lib/models";
-import { freshDemo } from "@/lib/meeting-state";
+import { freshDemo, freshDemos } from "@/lib/meeting-state";
 import { readMeetings, STORAGE_KEY, writeMeetings } from "@/lib/storage";
 
 import {
@@ -42,7 +42,7 @@ function initialize() {
     };
   } catch {
     snapshot = {
-      meetings: [freshDemo()],
+      meetings: freshDemos(),
       customTemplates: [],
       loaded: true,
       warning: "Browser storage is unavailable. Changes will last for this tab only.",
@@ -105,7 +105,9 @@ export function useWorkspace() {
       const next = update(current);
       persist(snapshot.meetings.map((m) => (m.id === id ? next : m)));
     },
-    resetDemo: () =>
-      persist([freshDemo(), ...snapshot.meetings.filter((m) => m.id !== "demo-launch")]),
+    resetDemo: (id = "demo-launch") => {
+      const demo = freshDemos().find((m) => m.id === id) ?? freshDemo();
+      persist([demo, ...snapshot.meetings.filter((m) => m.id !== demo.id)]);
+    },
   };
 }

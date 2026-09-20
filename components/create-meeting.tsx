@@ -1,264 +1,435 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MeetingRequirements, MeetingTemplate } from "@/lib/models";
-import { templates, getTemplate } from "@/lib/templates";
-import { blankRequirements, isBuiltinTemplate } from "@/lib/custom-templates";
-import { validRequirementLists } from "@/lib/requirements";
+import { ArrowLeft, Plus, Trash2, X, CalendarDays } from "lucide-react";
+import { MeetingTemplate, Participant, Requirement, MeetingStructure } from "@/lib/models";
+import { templates } from "@/lib/templates";
+import { blankTemplate, isBuiltinTemplate } from "@/lib/custom-templates";
 import { createMeeting } from "@/lib/demo";
-import { RequirementsEditor } from "./requirements-editor";
+import {
+  compileRequirements,
+  displayNameFromEmail,
+  durationMinutes,
+  initialStructure,
+  reusableTemplate,
+  validConfiguration,
+  validParticipants,
+  validSchedule,
+  timezoneOffset,
+} from "@/lib/meeting-structure";
+import { MeetingRulesEditor } from "./meeting-rules-editor";
+import { StructureEditor, MeetingGoalsEditor } from "./structure-editor";
 import { useI18n } from "./language-provider";
 import { useWorkspace } from "./workspace-store";
-import { Notice } from "./shared";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
 
-export function CreateMeeting({
-  templateId,
-  onClose,
-}: {
-  templateId: string;
-  onClose: () => void;
-}) {
-  const { t: tx, label } = useI18n();
+export function CreateMeeting({ onClose }: { onClose: () => void }) {
+  const { t: tx } = useI18n();
   const router = useRouter();
   const { saveMeeting, customTemplates, saveTemplate, deleteTemplate } = useWorkspace();
-  const initial = getTemplate(templateId)!;
-  const [selected, setSelected] = useState(templateId);
-  const [title, setTitle] = useState(initial.defaultTitle);
-  const [builtinTitle, setBuiltinTitle] = useState(true);
-  const [requirements, setRequirements] = useState<MeetingRequirements>(
-    structuredClone(initial.requirements),
+  const [page, setPage] = useState(1);
+  const [dirty, setDirty] = useState(false);
+  const [discard, setDiscard] = useState(false);
+  const [name, setName] = useState("");
+  const [date, setDate] = useState("");
+  const [startTime, setStart] = useState("");
+  const [endTime, setEnd] = useState("");
+  const [timezone, setTimezone] = useState(
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
   );
+  const [participants, setParticipants] = useState<Participant[]>([
+    { id: crypto.randomUUID(), email: "", name: "", role: "Other" },
+  ]);
+  const [selected, setSelected] = useState<MeetingTemplate | null>(null);
+  const [goals, setGoals] = useState<Requirement[]>([]);
+  const [structure, setStructure] = useState<MeetingStructure | null>(null);
+  const [deleting, setDeleting] = useState<MeetingTemplate | null>(null);
+  const [savingTemplate, setSavingTemplate] = useState(false);
   const [templateName, setTemplateName] = useState("");
-  const [managing, setManaging] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const allTemplates = [...templates, ...customTemplates];
-  const current = allTemplates.find((t) => t.id === selected);
-  const custom = current && !isBuiltinTemplate(current.id);
-  const valid = validRequirementLists(requirements);
-  const userRequirements = (): MeetingRequirements => ({
-    revision: 1,
-    items: requirements.items.map((r) => ({ ...r, label: label(r), builtinKey: undefined })),
-  });
-  function choose(t: MeetingTemplate) {
-    setSelected(t.id);
-    setRequirements(structuredClone(t.requirements));
-    if (builtinTitle || !title.trim()) {
-      setTitle(t.defaultTitle);
-      setBuiltinTitle(isBuiltinTemplate(t.id));
-    }
-    setTemplateName(isBuiltinTemplate(t.id) ? "" : t.name);
-    setManaging(false);
-    setMessage(null);
-  }
-  function newTemplate(empty: boolean) {
-    setSelected(`custom-${crypto.randomUUID()}`);
-    if (empty) {
-      setTitle("");
-      setRequirements(blankRequirements());
-    } else {
-      setTitle(builtinTitle ? tx(title) : title);
-      setRequirements(userRequirements());
-    }
-    setBuiltinTitle(false);
-    setTemplateName("");
-    setManaging(true);
-    setMessage(null);
-  }
-  function save() {
-    const id = isBuiltinTemplate(selected) ? `custom-${crypto.randomUUID()}` : selected;
-    saveTemplate({
-      id,
-      name: templateName.trim(),
-      defaultTitle: builtinTitle ? tx(title) : title,
-      description: "",
-      requirements: userRequirements(),
-    });
-    setSelected(id);
-    setRequirements(userRequirements());
-    setTitle(builtinTitle ? tx(title) : title);
-    setBuiltinTitle(false);
-    setManaging(false);
-    setMessage("Template saved.");
+  const [savedMessage, setSavedMessage] = useState(false);
+  const duration = durationMinutes(startTime, endTime);
+  const pageOneValid =
+    !!name.trim() &&
+    validSchedule(date, startTime, endTime, timezone) &&
+    validParticipants(participants);
+  const valid =
+    !!structure &&
+    validConfiguration(goals, structure, participants, duration, selected?.rules ?? []);
+  const close = () => (dirty ? setDiscard(true) : onClose());
+  const choose = (template: MeetingTemplate) => {
+    setSelected(template);
+    setGoals(structuredClone(template.defaultGoals));
+    setStructure(initialStructure(template.structureType, duration, participants, template));
+    setTemplateName(isBuiltinTemplate(template.id) ? "" : template.name);
+    setSavedMessage(false);
+  };
+  const personUpdate = (id: string, patch: Partial<Participant>) =>
+    setParticipants((list) => list.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  function finish() {
+    if (!selected || !structure || !valid || !pageOneValid) return;
+    const requirements = compileRequirements(goals, structure, participants, selected.rules);
+    const meeting = {
+      ...createMeeting(selected.id, crypto.randomUUID(), false, selected),
+      title: name.trim(),
+      builtinTitle: false,
+      date,
+      startTime,
+      endTime,
+      timezone,
+      participants,
+      goals,
+      structure,
+      requirements,
+    };
+    saveMeeting(meeting);
+    onClose();
+    router.push(`/meetings/${meeting.id}`);
   }
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
+    <Dialog open onOpenChange={(open) => !open && close()}>
       <DialogContent
         aria-describedby={undefined}
-        className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl"
+        showCloseButton={false}
+        className="creation-overlay !inset-0 !h-dvh !w-screen !max-w-none !translate-x-0 !translate-y-0 !rounded-none border-0 p-0"
       >
-        <DialogHeader className="px-5 py-4">
-          <DialogTitle>{tx("Create Meeting")}</DialogTitle>
-        </DialogHeader>
-        <form
-          className="flex min-h-0 flex-col"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!title.trim() || !valid) return;
-            const source: MeetingTemplate = current ?? {
-              id: selected,
-              name: templateName,
-              defaultTitle: title,
-              description: "",
-              requirements,
-            };
-            const meeting = {
-              ...createMeeting(selected, crypto.randomUUID(), false, source),
-              title: title.trim(),
-              builtinTitle,
-              requirements: structuredClone(requirements),
-            };
-            saveMeeting(meeting);
-            onClose();
-            router.push(`/meetings/${meeting.id}`);
-          }}
-        >
-          <div className="space-y-5 overflow-y-auto px-5 pb-5">
-            <label className="block">
-              <span className="field-label">{tx("Meeting name")}</span>
-              <Input
-                required
-                value={builtinTitle ? tx(title) : title}
-                maxLength={140}
-                onChange={(e) => {
-                  setTitle(e.target.value);
-                  setBuiltinTitle(false);
-                }}
-              />
-            </label>
-            <div>
-              <label className="block">
-                <span className="field-label">{tx("Template")}</span>
-                <select
-                  className="native-select"
-                  value={selected}
-                  onChange={(e) => choose(allTemplates.find((t) => t.id === e.target.value)!)}
-                >
-                  {!current && <option value={selected}>{tx("New template")}</option>}
-                  <optgroup label={tx("Built-in templates")}>
-                    {templates.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {tx(t.name)}
-                      </option>
-                    ))}
-                  </optgroup>
-                  {customTemplates.length > 0 && (
-                    <optgroup label={tx("Custom templates")}>
-                      {customTemplates.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                </select>
-              </label>
-              <div className="mt-2 flex flex-wrap gap-1">
-                <Button type="button" size="sm" variant="ghost" onClick={() => newTemplate(true)}>
-                  {tx("Create New Template")}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => (custom ? setManaging(!managing) : setManaging(true))}
-                >
-                  {tx(custom ? "Template options" : "Save as Template")}
-                </Button>
-              </div>
-              {managing && (
-                <div className="mt-3 space-y-3 border-l-2 pl-3">
+        <div className="flex h-full flex-col" onChangeCapture={() => setDirty(true)}>
+          <DialogHeader className="border-b px-5 py-4">
+            <div className="mx-auto flex w-full max-w-5xl items-center justify-between">
+              <DialogTitle>
+                {tx("Create Meeting")}{" "}
+                <span className="ml-3 text-xs font-normal text-muted-foreground">{page} / 3</span>
+              </DialogTitle>
+              <Button variant="ghost" size="icon" aria-label={tx("Close")} onClick={close}>
+                <X size={18} />
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-7">
+            <div key={page} className="flow-enter mx-auto max-w-4xl space-y-7">
+              {page === 1 && (
+                <>
+                  <h2 className="text-2xl font-semibold">{tx("Meeting details")}</h2>
                   <label className="block">
-                    <span className="field-label">{tx("Template name")}</span>
+                    <span className="field-label">{tx("Meeting name")}</span>
                     <Input
-                      value={templateName}
-                      maxLength={100}
-                      onChange={(e) => setTemplateName(e.target.value)}
+                      autoFocus
+                      required
+                      maxLength={140}
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
                     />
                   </label>
-                  <div className="flex flex-wrap gap-2">
+                  <fieldset className="space-y-3">
+                    <legend className="field-label">{tx("Meeting Time")}</legend>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <label>
+                        <span className="field-label flex items-center gap-1">
+                          <CalendarDays size={14} />
+                          {tx("Date")}
+                        </span>
+                        <Input
+                          type="date"
+                          required
+                          value={date}
+                          onChange={(e) => setDate(e.target.value)}
+                        />
+                      </label>
+                      <label>
+                        <span className="field-label">{tx("Start time")}</span>
+                        <Input
+                          type="time"
+                          step={300}
+                          required
+                          value={startTime}
+                          onChange={(e) => {
+                            setStart(e.target.value);
+                            setStructure(null);
+                          }}
+                        />
+                      </label>
+                      <label>
+                        <span className="field-label">{tx("End time")}</span>
+                        <Input
+                          type="time"
+                          step={300}
+                          required
+                          value={endTime}
+                          onChange={(e) => {
+                            setEnd(e.target.value);
+                            setStructure(null);
+                          }}
+                        />
+                      </label>
+                    </div>
+                    <label className="block max-w-sm">
+                      <span className="field-label">{tx("Timezone")}</span>
+                      <select
+                        aria-label={tx("Timezone")}
+                        className="native-select"
+                        value={timezone}
+                        onChange={(e) => setTimezone(e.target.value)}
+                      >
+                        {[...new Set([timezone, "UTC", ...Intl.supportedValuesOf("timeZone")])].map(
+                          (z) => (
+                            <option key={z}>{z}</option>
+                          ),
+                        )}
+                      </select>
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      {timezoneOffset(timezone, date, startTime) && (
+                        <span>
+                          {timezoneOffset(timezone, date, startTime)} {"\u00b7"}{" "}
+                        </span>
+                      )}
+                      {tx("Same-day meeting · 5-minute increments · up to 12 hours")}
+                    </p>
+                  </fieldset>
+                  <fieldset>
+                    <legend className="mb-3 text-sm font-semibold">{tx("Participants")}</legend>
+                    <div className="space-y-3">
+                      {participants.map((p, i) => (
+                        <div key={p.id} className="flex items-end gap-2">
+                          <div className="grid flex-1 gap-2 sm:grid-cols-2">
+                            <label>
+                              <span className="field-label">
+                                {tx("Email")} {i + 1}
+                              </span>
+                              <Input
+                                type="email"
+                                value={p.email}
+                                onChange={(e) =>
+                                  personUpdate(p.id, {
+                                    email: e.target.value,
+                                    ...(!p.name || p.name === displayNameFromEmail(p.email)
+                                      ? { name: displayNameFromEmail(e.target.value) }
+                                      : {}),
+                                  })
+                                }
+                              />
+                            </label>
+                            <label>
+                              <span className="field-label">
+                                {tx("Display name")} {i + 1}
+                              </span>
+                              <Input
+                                value={p.name}
+                                maxLength={100}
+                                onChange={(e) => personUpdate(p.id, { name: e.target.value })}
+                              />
+                            </label>
+                          </div>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            disabled={participants.length === 1}
+                            aria-label={`${tx("Remove participant")} ${i + 1}`}
+                            onClick={() => {
+                              setDirty(true);
+                              setParticipants(participants.filter((x) => x.id !== p.id));
+                              setStructure(null);
+                            }}
+                          >
+                            <Trash2 size={15} />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                     <Button
-                      type="button"
+                      className="mt-3"
+                      variant="ghost"
                       size="sm"
-                      variant="outline"
-                      disabled={!valid || !templateName.trim()}
-                      onClick={save}
+                      disabled={participants.length >= 30}
+                      onClick={() => {
+                        setDirty(true);
+                        setParticipants([
+                          ...participants,
+                          { id: crypto.randomUUID(), email: "", name: "", role: "Other" },
+                        ]);
+                        setStructure(null);
+                      }}
                     >
-                      {tx("Save Template")}
+                      <Plus size={15} />
+                      {tx("Add participant")}
                     </Button>
-                    {custom && (
-                      <>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => newTemplate(false)}
+                  </fieldset>
+                </>
+              )}
+              {page === 2 && (
+                <>
+                  <h2 className="text-2xl font-semibold">{tx("Choose a template")}</h2>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {[...templates, ...customTemplates].map((template) => (
+                      <div
+                        key={template.id}
+                        className={`relative rounded-xl border-2 transition-colors ${selected?.id === template.id ? "border-primary bg-primary/5" : "border-transparent bg-white"}`}
+                      >
+                        <button
+                          className="min-h-32 w-full p-6 text-left text-base font-medium"
+                          aria-pressed={selected?.id === template.id}
+                          onClick={() => choose(template)}
                         >
-                          {tx("Save as Template")}
-                        </Button>
+                          {isBuiltinTemplate(template.id) ? tx(template.name) : template.name}
+                        </button>
+                        {!isBuiltinTemplate(template.id) && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-2 top-2"
+                            aria-label={`${tx("Delete Custom Template")}: ${template.name}`}
+                            onClick={() => setDeleting(template)}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      className={`min-h-32 rounded-xl border-2 border-dashed p-6 text-left font-medium ${selected && ![...templates, ...customTemplates].some((t) => t.id === selected.id) ? "border-primary bg-primary/5" : "border-muted-foreground/30"}`}
+                      onClick={() => {
+                        choose(blankTemplate());
+                        setStructure(null);
+                      }}
+                    >
+                      <Plus className="mb-3" size={22} />
+                      {tx("Create New Template")}
+                    </button>
+                  </div>
+                </>
+              )}
+              {page === 3 && selected && (
+                <>
+                  <MeetingGoalsEditor goals={goals} onChange={setGoals} />
+                  <StructureEditor
+                    structure={structure}
+                    onChange={setStructure}
+                    participants={participants}
+                    onParticipantsChange={setParticipants}
+                    duration={duration}
+                    template={selected}
+                  />
+                  <details className="border-t pt-4">
+                    <summary className="text-sm text-muted-foreground">
+                      {tx("Reusable rules")}
+                    </summary>
+                    <MeetingRulesEditor
+                      rules={selected.rules}
+                      onChange={(rules) => setSelected({ ...selected, rules })}
+                    />
+                  </details>
+                  <div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={!valid}
+                      onClick={() => setSavingTemplate(!savingTemplate)}
+                    >
+                      {tx("Save as Template")}
+                    </Button>
+                    {savedMessage && (
+                      <span className="ml-3 text-sm text-primary">{tx("Template saved.")}</span>
+                    )}
+                    {savingTemplate && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Input
+                          aria-label={tx("Template name")}
+                          className="max-w-sm"
+                          value={templateName}
+                          onChange={(e) => setTemplateName(e.target.value)}
+                        />
                         <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setDeleting(true)}
+                          disabled={!templateName.trim() || !valid}
+                          onClick={() => {
+                            if (!structure) return;
+                            const id = isBuiltinTemplate(selected.id)
+                              ? `custom-${crypto.randomUUID()}`
+                              : selected.id;
+                            const t = reusableTemplate(id, templateName.trim(), {
+                              goals,
+                              structure,
+                              participants,
+                              requirements: compileRequirements(
+                                goals,
+                                structure,
+                                participants,
+                                selected.rules,
+                              ),
+                            });
+                            saveTemplate(t);
+                            setSelected(t);
+                            setSavingTemplate(false);
+                            setSavedMessage(true);
+                          }}
                         >
-                          {tx("Delete Custom Template")}
+                          {tx("Save Template")}
                         </Button>
-                      </>
+                      </div>
                     )}
                   </div>
-                </div>
+                </>
               )}
             </div>
-            {message && <Notice>{message}</Notice>}
-            <h2 className="border-t pt-5 text-sm font-semibold">{tx("What must be completed?")}</h2>
-            <RequirementsEditor
-              value={requirements}
-              onChange={(r) => {
-                setRequirements(r);
-                setMessage(null);
-              }}
-            />
           </div>
-          <DialogFooter className="border-t px-5 py-4">
-            <Button type="button" variant="ghost" onClick={onClose}>
+          <footer className="border-t bg-white px-5 py-4">
+            <div className="mx-auto flex max-w-5xl justify-between gap-3">
+              <Button variant="ghost" onClick={() => (page === 1 ? close() : setPage(page - 1))}>
+                <ArrowLeft size={16} />
+                {tx(page === 1 ? "Back to Home" : "Back")}
+              </Button>
+              <Button
+                disabled={page === 1 ? !pageOneValid : page === 2 ? !selected : !valid}
+                onClick={() => {
+                  if (page === 3) finish();
+                  else {
+                    if (page === 2 && selected && !structure)
+                      setStructure(
+                        initialStructure(selected.structureType, duration, participants, selected),
+                      );
+                    setPage(page + 1);
+                  }
+                }}
+              >
+                {tx(page === 3 ? "Create Meeting" : "Continue")}
+              </Button>
+            </div>
+          </footer>
+        </div>
+      </DialogContent>
+      <Dialog open={discard} onOpenChange={setDiscard}>
+        <DialogContent aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>{tx("Discard this meeting?")}</DialogTitle>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDiscard(false)}>
               {tx("Cancel")}
             </Button>
-            <Button type="submit" disabled={!title.trim() || !valid}>
-              {tx("Create Meeting")}
+            <Button variant="destructive" onClick={onClose}>
+              {tx("Discard")}
             </Button>
           </DialogFooter>
-        </form>
-      </DialogContent>
-      <Dialog open={deleting} onOpenChange={setDeleting}>
-        <DialogContent>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
+        <DialogContent aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>{tx("Delete this template?")}</DialogTitle>
-            <DialogDescription>
-              {tx("Meetings created from this template will be kept.")}
-            </DialogDescription>
           </DialogHeader>
-          <p className="break-words font-medium">{current?.name}</p>
+          <p>{deleting?.name}</p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleting(false)}>
+            <Button variant="outline" onClick={() => setDeleting(null)}>
               {tx("Cancel")}
             </Button>
             <Button
               variant="destructive"
               onClick={() => {
-                deleteTemplate(selected);
-                setDeleting(false);
-                newTemplate(true);
+                if (deleting) {
+                  deleteTemplate(deleting.id);
+                  if (selected?.id === deleting.id) setSelected(null);
+                }
+                setDeleting(null);
               }}
             >
               {tx("Delete")}

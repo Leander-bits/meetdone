@@ -75,12 +75,11 @@ describe("deterministic completion rules", () => {
     expect(edited.gapResolutions).toEqual([]);
   });
   it("detects exactly the four incomplete launch blockers", () => {
-    expect(evaluateMeeting(freshDemo()).blockingGaps.map((g) => g.type)).toEqual([
-      "speaker_missing",
-      "decision_pending",
-      "action_owner",
-      "action_deadline",
-    ]);
+    expect(
+      evaluateMeeting(freshDemo())
+        .blockingGaps.map((g) => g.type)
+        .sort(),
+    ).toEqual(["action_deadline", "action_owner", "decision_pending", "speaker_missing"]);
   });
   it("missing required speaker is blocking, including a speaker who is only mentioned", () => {
     const m = freshDemo();

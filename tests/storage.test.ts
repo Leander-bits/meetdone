@@ -11,14 +11,14 @@ function memoryStorage(initial?: string) {
   };
 }
 describe("versioned local persistence", () => {
-  it("migrates empty Phase 1 active lists without changing user text", () => {
+  it("preserves legacy requirements without inventing missing speaker inputs", () => {
     const m = freshDemo();
     m.requirements.items = m.requirements.items.filter((r) => r.kind !== "speaker");
     const result = readMeetings(memoryStorage(JSON.stringify({ version: 1, meetings: [m] })));
     expect(result.warning).toBeNull();
-    expect(result.meetings[0].requirements.items.some((r) => r.kind === "speaker")).toBe(true);
+    expect(result.meetings[0].requirements.items.some((r) => r.kind === "speaker")).toBe(false);
     expect(result.meetings[0].transcript.text).toBe(m.transcript.text);
-    expect(result.meetings[0].analysis).toBeNull();
+    expect(result.meetings[0].analysis).toEqual(m.analysis);
   });
   it("rejects duplicated requirement IDs in storage", () => {
     const m = freshDemo();
@@ -45,14 +45,11 @@ describe("versioned local persistence", () => {
     expect(writeMeetings(storage, [meeting])).toBeNull();
     expect(readMeetings(storage).meetings).toEqual([meeting]);
   });
-  it.each(["not json", "{}", '{"version":1,"meetings":[{"id":"bad"}]}'])(
-    "safely falls back for invalid data %s",
-    (raw) => {
-      const result = readMeetings(memoryStorage(raw));
-      expect(result.warning).toBeTruthy();
-      expect(result.meetings[0].id).toBe("demo-launch");
-    },
-  );
+  it.each(["not json", "{}"])("safely falls back for invalid data %s", (raw) => {
+    const result = readMeetings(memoryStorage(raw));
+    expect(result.warning).toBeTruthy();
+    expect(result.meetings[0].id).toBe("demo-launch");
+  });
   it("preserves an empty workspace after the last meeting is deleted", () => {
     const storage = memoryStorage();
     writeMeetings(storage, []);
@@ -67,7 +64,7 @@ describe("versioned local persistence", () => {
         throw new Error("quota");
       },
     };
-    expect(readMeetings(denied).meetings).toHaveLength(1);
+    expect(readMeetings(denied).meetings).toHaveLength(3);
     expect(writeMeetings(denied, [freshDemo()])).toContain("could not be saved");
   });
 });

@@ -1,6 +1,109 @@
 export type Locale = "zh" | "en";
 export const LANGUAGE_KEY = "meetdone.language";
 export const zh: Record<string, string> = {
+  "Schedule not recorded": "未记录会议时间",
+  "Structure not recorded": "未记录会议结构",
+  "Saved summary": "已保存的总结",
+  "Keep at least one goal. Complete each requirement and stay within the 80-item limit.":
+    "至少保留一个目标，填写所有要求，总数不超过 80 项。",
+  Yes: "是",
+  No: "否",
+  Edit: "编辑",
+  Optional: "可不填写",
+  "Mobile feature launch review": "移动 App 收藏提醒功能上线评审",
+  "Two-week sprint retrospective": "两周产品迭代复盘",
+  "Customer onboarding progress": "客户入驻项目推进会",
+  "Assess release readiness": "评估功能上线准备情况",
+  "Review the sprint and agree on improvements": "复盘本轮迭代并确定改进措施",
+  "About MeetDone": "关于 MeetDone",
+  "Existing Meetings": "已有会议",
+  "Meeting details": "会议信息",
+  "Meeting Time": "会议时间",
+  Date: "日期",
+  "Start time": "开始时间",
+  "End time": "结束时间",
+  Timezone: "时区",
+  "Same-day meeting · 5-minute increments · up to 12 hours":
+    "同日会议 · 以 5 分钟为单位 · 最长 12 小时",
+  Participants: "参会人",
+  Email: "邮箱",
+  "Display name": "显示名称",
+  "Add participant": "添加参会人",
+  "Remove participant": "移除参会人",
+  "Choose a template": "选择模板",
+  "Reusable rules": "会议规则",
+  "Back to Home": "返回首页",
+  Continue: "继续",
+  "Discard this meeting?": "放弃正在创建的会议？",
+  Discard: "放弃",
+  "Meeting Goals": "会议目标",
+  Goal: "目标",
+  "Remove goal": "移除目标",
+  "Add goal": "添加目标",
+  "Recommended goals": "建议目标",
+  "Recommended goal": "建议目标",
+  "Move up": "上移",
+  "Move down": "下移",
+  "Meeting Structure": "会议结构",
+  "Time Sequence": "时间顺序",
+  "Speaker Sequence": "发言顺序",
+  "Stage Progression": "阶段推进",
+  "Stage × Speaker Matrix": "阶段 × 发言人",
+  Timeline: "时间线",
+  minutes: "分钟",
+  Segment: "环节",
+  Duration: "时长",
+  "New segment": "新环节",
+  "Add segment": "添加环节",
+  Opening: "开场",
+  Background: "背景",
+  Discussion: "讨论",
+  Decision: "决策",
+  Proposal: "方案",
+  Risks: "风险",
+  "Next Steps": "下一步",
+  Role: "角色",
+  Product: "产品",
+  Engineering: "技术",
+  Sales: "销售",
+  Customer: "客户",
+  Other: "其他",
+  "Required Speaker": "必须发言",
+  "Optional Speaker": "可选发言",
+  "Reset order": "重置顺序",
+  Stage: "阶段",
+  "Remove stage": "移除阶段",
+  "Assign participant": "分配参会人",
+  "Add selected participant": "添加已选参会人",
+  "New stage": "新阶段",
+  "Add stage": "添加阶段",
+  "Reset stage order": "重置阶段顺序",
+  Progress: "进度",
+  "Customer feedback": "客户反馈",
+  "Meeting Requirements": "会议要求",
+  "Original Meeting Goals": "原始会议目标",
+  "Achieved Conclusions": "已达成结论",
+  "Decisions Made": "已作出的决策",
+  "Unresolved Issues": "未解决事项",
+  "Remaining Risks": "剩余风险",
+  "Final Meeting Evaluation": "会议结束检查",
+  "Were any required topics missed?": "是否遗漏了必需讨论的议题？",
+  "Did any required speaker fail to provide input?": "是否有必须发言的人尚未提供意见？",
+  "Do meeting goals have clear conclusions?": "会议目标是否有明确结论？",
+  "Was anything discussed but not decided?": "是否有讨论过但尚未决定的事项？",
+  "Do all Action Items have an owner and deadline?": "所有行动项是否都有负责人和截止日期？",
+  "Are there unresolved blockers preventing the meeting from ending?":
+    "是否仍有阻止会议结束的问题？",
+  "Needs attention": "待处理",
+  Clear: "已核对",
+  "Next required speaker": "下一位需补充意见的发言人",
+  "Blocking Issues": "阻塞问题",
+  "Convert Gap to Action Item": "转为行动项",
+  Gap: "待解决问题",
+  "Imported meeting. Date, time, and participants may need review.":
+    "已导入旧会议，请核对日期、时间和参会信息。",
+  "Some saved records could not be opened. A recovery copy was kept where browser storage permits.":
+    "部分旧记录无法打开；浏览器存储允许时已保留恢复副本。",
   "Bosch CE T4 Station Data Editor release review": "Bosch CE T4 Station Data Editor 上线评审",
   "Bosch CE T4 Pipeline V2 sprint retrospective": "Bosch CE T4 Pipeline V2 Sprint 复盘",
   "Bosch Manufacturing Solutions · CE T4 project progress":
@@ -518,4 +621,18 @@ export function translate(
   for (const [name, value] of Object.entries(params))
     result = result.replaceAll(`{${name}}`, String(value));
   return result;
+}
+
+// Translate only proven built-in role labels; the participant's name remains untouched.
+export function requirementLabel(
+  locale: Locale,
+  r: { label: string; kind: string; builtinKey?: string },
+) {
+  if (r.builtinKey !== r.label) return r.label;
+  if (r.kind === "speaker")
+    return r.label.replace(
+      /（(Product|Engineering|Sales|Customer|Other)）$/,
+      (_, role: string) => `（${translate(locale, role)}）`,
+    );
+  return translate(locale, r.label);
 }

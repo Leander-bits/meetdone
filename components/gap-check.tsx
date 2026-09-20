@@ -23,7 +23,6 @@ export function GapCheck({
   onContinue,
   onEnd,
   onConvert,
-  onActions,
 }: {
   meeting: Meeting;
   check: CompletionCheck;
@@ -48,50 +47,11 @@ export function GapCheck({
         <h4 className="text-sm font-medium">{gapTitle(gap)}</h4>
         <p className="mt-1 text-xs leading-5 text-muted-foreground">{gapDescription(gap)}</p>
         <EvidenceList ids={gap.evidenceIds} evidence={m.analysis?.evidence ?? []} />
-        {prepared && gap.type !== "analysis_missing" && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {(gap.type === "action_owner" || gap.type === "action_deadline") && (
-              <Button variant="outline" size="sm" onClick={onActions}>
-                {tx("Edit action item")}
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setConverting(gap);
-                setDescription(
-                  gap.type === "action_missing"
-                    ? gapTitle(gap)
-                    : `${tx("Follow up")}: ${gapTitle(gap)}`,
-                );
-                setOwner("");
-                setDeadline("");
-              }}
-            >
-              {tx("Convert to Action Item")}
-            </Button>
-          </div>
-        )}
       </article>
     ));
   return (
     <div className="space-y-4">
       {check.blockingGaps.length > 0 && <div className="divide-y">{group(check.blockingGaps)}</div>}
-      {prepared && (
-        <div className="flex flex-wrap gap-2">
-          {ready ? (
-            <Button onClick={() => onEnd()}>{tx("End Meeting")}</Button>
-          ) : (
-            <>
-              <Button onClick={onContinue}>{tx("Continue Discussion")}</Button>
-              <Button variant="outline" onClick={() => setException(true)}>
-                {tx("End with Exception")}
-              </Button>
-            </>
-          )}
-        </div>
-      )}
       {check.followUpGaps.length > 0 && (
         <details className="border-t pt-3">
           <summary className="text-sm text-muted-foreground">
@@ -99,6 +59,31 @@ export function GapCheck({
           </summary>
           <div className="mt-3 divide-y">{group(check.followUpGaps)}</div>
         </details>
+      )}
+      {prepared && (
+        <div className="flex flex-wrap gap-2 border-t pt-4">
+          <Button variant="outline" onClick={onContinue}>
+            {tx("Continue Discussion")}
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!check.blockingGaps.length && !check.followUpGaps.length}
+            onClick={() => {
+              const gap = [...check.blockingGaps, ...check.followUpGaps][0];
+              setConverting(gap);
+              setDescription(`${tx("Follow up")}: ${gapTitle(gap)}`);
+              setOwner("");
+              setDeadline("");
+            }}
+          >
+            {tx("Convert Gap to Action Item")}
+          </Button>
+          {ready ? (
+            <Button onClick={() => onEnd()}>{tx("End Meeting")}</Button>
+          ) : (
+            <Button onClick={() => setException(true)}>{tx("End with Exception")}</Button>
+          )}
+        </div>
       )}
       <Dialog open={exception} onOpenChange={setException}>
         <DialogContent className="max-h-[90dvh] overflow-y-auto">
@@ -148,7 +133,7 @@ export function GapCheck({
       <Dialog open={!!converting} onOpenChange={(open) => !open && setConverting(null)}>
         <DialogContent className="max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{tx("Convert to Action Item")}</DialogTitle>
+            <DialogTitle>{tx("Convert Gap to Action Item")}</DialogTitle>
             <DialogDescription>
               {converting?.type === "action_missing"
                 ? tx("Add an owner and deadline.")
@@ -157,6 +142,26 @@ export function GapCheck({
                   : tx("This requirement does not allow deferral. The blocker will remain.")}
             </DialogDescription>
           </DialogHeader>
+          <label>
+            <span className="field-label">{tx("Gap")}</span>
+            <select
+              className="native-select"
+              value={converting?.id ?? ""}
+              onChange={(e) => {
+                const gap = [...check.blockingGaps, ...check.followUpGaps].find(
+                  (g) => g.id === e.target.value,
+                )!;
+                setConverting(gap);
+                setDescription(`${tx("Follow up")}: ${gapTitle(gap)}`);
+              }}
+            >
+              {[...check.blockingGaps, ...check.followUpGaps].map((g) => (
+                <option key={g.id} value={g.id}>
+                  {gapTitle(g)}
+                </option>
+              ))}
+            </select>
+          </label>
           <label>
             <span className="field-label">{tx("Description")}</span>
             <Input value={description} onChange={(e) => setDescription(e.target.value)} />

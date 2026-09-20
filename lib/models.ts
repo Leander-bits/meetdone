@@ -22,12 +22,52 @@ export const requirementsSchema = z.object({
   revision: z.number().int().positive(),
   items: z.array(requirementSchema),
 });
+export const structureTypes = ["time", "speaker", "stages", "matrix"] as const;
+export const roleSchema = z.enum(["Product", "Engineering", "Sales", "Customer", "Other"]);
+export const goalInputSchema = z.object({
+  id: z.string(),
+  text: z.string().max(500),
+  builtinKey: z.string().optional(),
+});
+export const stageDefaultSchema = z.object({
+  id: z.string(),
+  name: z.string().max(100),
+  builtinKey: z.string().optional(),
+  goals: z.array(goalInputSchema).min(1),
+  custom: z.boolean().default(false),
+});
+export const participantSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  name: z.string().min(1).max(100),
+  role: roleSchema,
+  roleLabel: z.string().optional(),
+});
+export const stageSchema = stageDefaultSchema.extend({
+  assignments: z.array(z.object({ participantId: z.string(), required: z.boolean() })),
+});
+export const structureSchema = z.object({
+  type: z.enum(structureTypes),
+  segments: z.array(stageDefaultSchema.extend({ minutes: z.number().int().positive() })),
+  stages: z.array(stageSchema),
+  speakerOrder: z.array(z.string()),
+  requiredSpeakerIds: z.array(z.string()),
+});
 export const templateSchema = z.object({
   id: z.string().min(1).max(100),
   name: z.string(),
-  description: z.string(),
-  defaultTitle: z.string(),
-  requirements: requirementsSchema,
+  structureType: z.enum(structureTypes),
+  defaultGoals: z.array(requirementSchema),
+  defaultStages: z.array(stageDefaultSchema),
+  roleRequirements: z.array(
+    z.object({
+      id: z.string(),
+      role: roleSchema,
+      required: z.boolean(),
+      stageId: z.string().optional(),
+    }),
+  ),
+  rules: z.array(requirementSchema),
 });
 export const evidenceSchema = z.object({
   id: z.string(),
@@ -171,6 +211,14 @@ export const meetingSchema = z.object({
   builtinTitle: z.boolean().optional(),
   templateId: z.string().min(1).max(100),
   isDemo: z.boolean(),
+  date: z.string(),
+  startTime: z.string(),
+  endTime: z.string(),
+  timezone: z.string(),
+  participants: z.array(participantSchema),
+  goals: z.array(requirementSchema),
+  structure: structureSchema,
+  migrationNote: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
   lifecycle: lifecycleSchema,
@@ -199,6 +247,11 @@ export type CompletionCheck = z.infer<typeof completionSchema>;
 export type GapResolution = z.infer<typeof resolutionSchema>;
 export type MeetingSummary = z.infer<typeof summarySchema>;
 export type Meeting = z.infer<typeof meetingSchema>;
+export type Participant = z.infer<typeof participantSchema>;
+export type MeetingStructure = z.infer<typeof structureSchema>;
+export type Stage = z.infer<typeof stageSchema>;
+export type GoalInput = z.infer<typeof goalInputSchema>;
+export type StructureType = (typeof structureTypes)[number];
 
 // Labels and topic relationships identify meaning. Changing priority does not invent new evidence.
 export function requirementKey(r: Requirement, items: Requirement[] = []): string {

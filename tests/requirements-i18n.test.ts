@@ -93,9 +93,8 @@ describe("bilingual built-ins", () => {
     for (const template of templates)
       for (const text of [
         template.name,
-        template.description,
-        template.defaultTitle,
-        ...template.requirements.items.map((r) => r.label),
+        ...template.defaultGoals.map((r) => r.label),
+        ...template.rules.map((r) => r.label),
       ])
         expect(zh[text], text).toBeTruthy();
   });

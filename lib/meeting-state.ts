@@ -33,11 +33,12 @@ function changed(m: Meeting): Meeting {
 export function updateRequirements(m: Meeting, requirements: MeetingRequirements): Meeting {
   if (!validRequirementLists(requirements))
     throw new Error(
-      "Keep at least one goal, conclusion, topic, speaker input, and action output. All items need text.",
+      "Keep at least one goal. Complete each requirement and stay within the 80-item limit.",
     );
   return {
     ...changed(m),
     requirements: { ...requirements, revision: m.requirements.revision + 1 },
+    goals: requirements.items.filter((r) => r.kind === "goal"),
     analysis: null,
     gapResolutions: [],
     actionItems: m.actionItems
@@ -145,7 +146,13 @@ export function buildSummary(m: Meeting, endedAt: string): MeetingSummary {
     goalsAchieved: m.analysis.goals
       .filter((g) => g.status === "complete")
       .map((g) => m.requirements.items.find((r) => r.id === g.requirementId)?.label ?? g.detail),
-    conclusions: m.analysis.conclusions.filter((g) => g.status === "complete").map((g) => g.detail),
+    conclusions: [
+      ...new Set(
+        [...m.analysis.conclusions, ...m.analysis.goals]
+          .filter((g) => g.status === "complete" && g.detail.trim())
+          .map((g) => g.detail),
+      ),
+    ],
     decisions: m.analysis.decisions.filter((d) => d.status === "decided").map((d) => d.detail),
     unresolvedIssues: m.analysis.unresolvedIssues.map((i) => i.description),
     actionItems: structuredClone(m.actionItems),
@@ -194,4 +201,13 @@ export function freshDemo(): Meeting {
   return analyzeMeeting(
     loadScenario(createMeeting("launch", "demo-launch", true), "launch-incomplete"),
   );
+}
+
+export function freshDemos(): Meeting[] {
+  return [
+    freshDemo(),
+    ...["retro", "customer"].map((id) =>
+      analyzeMeeting(loadScenario(createMeeting(id, `demo-${id}`, true), `${id}-complete`)),
+    ),
+  ];
 }

@@ -74,7 +74,7 @@ describe("custom templates", () => {
     const template = custom();
     const meeting = createMeeting(template.id, "meeting", false, template);
     const original = structuredClone(meeting.requirements);
-    template.requirements.items[0].label = "Later change";
+    template.defaultGoals[0].label = "Later change";
     const remaining = deleteCustomTemplate([template], template.id);
     expect(remaining).toEqual([]);
     expect(meeting.requirements).toEqual(original);
@@ -84,7 +84,10 @@ describe("custom templates", () => {
   });
   it("rejects empty template content and safely recovers corrupt storage", () => {
     expect(() =>
-      saveCustomTemplate([], { ...custom(), requirements: blankRequirements() }),
+      saveCustomTemplate([], {
+        ...custom(),
+        defaultGoals: blankRequirements().items.filter((r) => r.kind === "goal"),
+      }),
     ).toThrow();
     expect(
       readCustomTemplates({ getItem: () => "broken", setItem: () => {} }).warning,
@@ -155,7 +158,7 @@ describe("Chinese demo evidence", () => {
     });
     for (const e of analysis.evidence) {
       expect(scenario.transcript.split("\n")[Number(e.segmentId.replace("line-", "")) - 1]).toBe(
-        `${e.speaker}: ${e.quote}`,
+        `${e.speaker}：${e.quote}`,
       );
     }
     for (const item of [
@@ -174,7 +177,7 @@ describe("Chinese demo evidence", () => {
     for (const action of analysis.actionItems) {
       const text = analysis.evidence
         .filter((e) => action.evidenceIds.includes(e.id))
-        .map((e) => `${e.speaker}: ${e.quote}`)
+        .map((e) => `${e.speaker}：${e.quote}`)
         .join("\n");
       if (action.owner) expect(text).toContain(action.owner);
       if (action.deadline) expect(text).toContain(action.deadline);

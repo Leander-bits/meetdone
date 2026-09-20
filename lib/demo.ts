@@ -1,5 +1,7 @@
 import { Meeting, MeetingAnalysis, MeetingTemplate, Requirement, requirementKey } from "./models";
 import { getTemplate } from "./templates";
+import { demoConfiguration, demoTitles } from "./demo-configuration";
+import { initialStructure, compileRequirements } from "./meeting-structure";
 import {
   DemoLine,
   launchDiscussion,
@@ -16,7 +18,7 @@ export type DemoScenario = {
   analysis: Omit<MeetingAnalysis, "id" | "transcriptRevision" | "requirementsRevision">;
 };
 function makeScenario(templateId: string, complete: boolean, lines: DemoLine[]): DemoScenario {
-  const template = getTemplate(templateId)!;
+  const template = demoConfiguration(templateId);
   const id = `${templateId}-${complete ? "complete" : "incomplete"}`;
   const evidence = lines.map((line, i) => ({
     id: line.id,
@@ -43,6 +45,12 @@ function makeScenario(templateId: string, complete: boolean, lines: DemoLine[]):
     "r-dev": "engineering",
     "c-csm": "lead-opinion",
     "c-client": "client-opinion",
+    "speaker-structure-progress-sun": "lead-opinion",
+    "speaker-structure-progress-jiaheng": "progress",
+    "speaker-structure-feedback-alex": "client-opinion",
+    "speaker-structure-feedback-devi": "boundary",
+    "speaker-structure-next-jiaheng": "action",
+    "speaker-structure-next-alex": "next-confirm",
   };
   const analysis: DemoScenario["analysis"] = {
     provider: "demo",
@@ -57,7 +65,24 @@ function makeScenario(templateId: string, complete: boolean, lines: DemoLine[]):
     topics: template.requirements.items
       .filter((r) => r.kind === "topic" && r.level === "required")
       .map((r) => {
-        const anchor = r.id === "l-topic-risks" ? "risks" : assessment;
+        const anchor =
+          r.id === "l-topic-risks"
+            ? "risks"
+            : r.id === "structure-feedback"
+              ? "client-opinion"
+              : r.id === "structure-next"
+                ? "decision"
+                : r.id === "structure-stage-0"
+                  ? "worked"
+                  : r.id === "structure-stage-1"
+                    ? "sample-plan"
+                    : r.id === "structure-stage-2"
+                      ? "boundary"
+                      : r.id === "structure-stage-3"
+                        ? "decision"
+                        : r.id === "structure-stage-4"
+                          ? "action"
+                          : assessment;
         return { ...base(r, [anchor]), status: "complete", detail: quote(anchor) };
       }),
     speakers: template.requirements.items
@@ -96,7 +121,7 @@ function makeScenario(templateId: string, complete: boolean, lines: DemoLine[]):
               : "Max"
             : templateId === "retro"
               ? "Jiaheng"
-              : "Alex",
+              : "Jiaheng",
         deadline: !complete && i === 1 ? null : "2026-09-24",
         status: "open",
         source: "demo",
@@ -136,7 +161,7 @@ function makeScenario(templateId: string, complete: boolean, lines: DemoLine[]):
     description: complete
       ? "Discussion and commitments are captured."
       : "Four blockers to resolve before ending.",
-    transcript: lines.map((line) => `${line.speaker}: ${line.text}`).join("\n\n"),
+    transcript: lines.map((line) => `${line.speaker}：${line.text}`).join("\n\n"),
     analysis,
   };
 }
@@ -157,7 +182,7 @@ export function createMeeting(
   const now = new Date().toISOString();
   return {
     id,
-    title: template.defaultTitle,
+    title: demoTitles[templateId] ?? template.name,
     builtinTitle: !customTemplate,
     templateId,
     isDemo,
@@ -165,7 +190,23 @@ export function createMeeting(
     updatedAt: now,
     lifecycle: "active",
     stateRevision: 1,
-    requirements: structuredClone(template.requirements),
+    ...(!customTemplate
+      ? demoConfiguration(templateId)
+      : {
+          date: "",
+          startTime: "09:00",
+          endTime: "09:30",
+          timezone: "UTC",
+          participants: [],
+          goals: structuredClone(template.defaultGoals),
+          structure: initialStructure(template.structureType, 30, [], template),
+          requirements: compileRequirements(
+            template.defaultGoals,
+            initialStructure(template.structureType, 30, [], template),
+            [],
+            template.rules,
+          ),
+        }),
     transcript: { text: "", revision: 1, scenarioId: null },
     analysis: null,
     actionItems: [],
