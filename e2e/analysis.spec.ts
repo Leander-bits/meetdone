@@ -23,7 +23,10 @@ test("blocked demo becomes ready after follow-up and automatically downloads Mar
   await demoComplete(page);
   await expect(page.getByRole("status")).toContainText("Ready to End");
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "End Meeting", exact: true }).click();
+  await page
+    .locator("#analysis-results")
+    .getByRole("button", { name: "End Meeting", exact: true })
+    .click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe("MeetDone_Mobile feature launch review_2026-09-23.md");
   await expect(page.getByRole("heading", { name: "Meeting summary", exact: true })).toBeVisible();
@@ -91,10 +94,14 @@ test("custom AI analysis renders in one section, preserves evidence and invalida
   const transcript =
     "Devi（产品）：我们讨论过上线安排，但尚未做出最终决定，需要等销售明确表达意见后再确认。";
   await page.getByRole("textbox", { name: "Transcript", exact: true }).fill(transcript);
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
   await page.route("**/api/analyze-meeting", async (route) => {
     const input = route.request().postDataJSON();
     const r = input.requirements.items.find((r: { id: string }) => r.id === "l-decision");
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await gate;
     await route.fulfill({
       json: {
         analysis: {
@@ -134,7 +141,12 @@ test("custom AI analysis renders in one section, preserves evidence and invalida
     });
   });
   await page.getByRole("button", { name: "AI Analyze Meeting", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Analyzing", exact: true })).toBeDisabled();
+  await expect(
+    page
+      .locator('section[aria-labelledby="transcript-heading"]')
+      .getByRole("button", { name: "Analyzing", exact: true }),
+  ).toBeDisabled();
+  release();
   await expect(page.getByRole("heading", { name: "AI Analysis", exact: true })).toHaveCount(1);
   await expect(page.getByText("Discussed, not decided", { exact: true }).first()).toBeVisible();
   await page.getByText("View evidence", { exact: true }).first().click();

@@ -100,11 +100,11 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
       <DialogContent
         aria-describedby={undefined}
         showCloseButton={false}
-        className="creation-overlay !inset-0 !h-dvh !w-screen !max-w-none !translate-x-0 !translate-y-0 !rounded-none border-0 p-0"
+        className="creation-overlay !inset-0 !h-dvh !w-full !max-w-none !translate-x-0 !translate-y-0 !rounded-none border-0 p-0"
       >
         <div className="flex h-full flex-col" onChangeCapture={() => setDirty(true)}>
-          <DialogHeader className="border-b px-5 py-4">
-            <div className="mx-auto flex w-full max-w-5xl items-center justify-between">
+          <DialogHeader className="border-b px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex w-full items-center justify-between">
               <DialogTitle>
                 {tx("Create Meeting")}{" "}
                 <span className="ml-3 text-xs font-normal text-muted-foreground">{page} / 3</span>
@@ -114,8 +114,8 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
               </Button>
             </div>
           </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-7">
-            <div key={page} className="flow-enter mx-auto max-w-4xl space-y-7">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-7 sm:px-6 lg:px-8">
+            <div key={page} className="flow-enter w-full min-w-0 space-y-7">
               {page === 1 && (
                 <>
                   <h2 className="text-2xl font-semibold">{tx("Meeting details")}</h2>
@@ -204,7 +204,7 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                     <div className="space-y-3">
                       {participants.map((p, i) => (
                         <div key={p.id} className="flex items-end gap-2">
-                          <div className="grid flex-1 gap-2 sm:grid-cols-2">
+                          <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
                             <label>
                               <span className="field-label">
                                 {tx("Email")} {i + 1}
@@ -233,20 +233,22 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                               />
                             </label>
                           </div>
-                          {i > 0 && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              aria-label={`${tx("Remove participant")} ${i + 1}`}
-                              onClick={() => {
-                                setDirty(true);
-                                setParticipants(participants.filter((x) => x.id !== p.id));
-                                setStructure(null);
-                              }}
-                            >
-                              <Trash2 size={15} />
-                            </Button>
-                          )}
+                          <div className="h-9 w-9 shrink-0" data-participant-delete-slot>
+                            {i > 0 && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                aria-label={`${tx("Remove participant")} ${i + 1}`}
+                                onClick={() => {
+                                  setDirty(true);
+                                  setParticipants(participants.filter((x) => x.id !== p.id));
+                                  setStructure(null);
+                                }}
+                              >
+                                <Trash2 size={15} />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -383,8 +385,8 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
               )}
             </div>
           </div>
-          <footer className="border-t bg-white px-5 py-4">
-            <div className="mx-auto flex max-w-5xl justify-between gap-3">
+          <footer className="border-t bg-white px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex w-full justify-between gap-3">
               <Button variant="ghost" onClick={() => (page === 1 ? close() : setPage(page - 1))}>
                 <ArrowLeft size={16} />
                 {tx(page === 1 ? "Back to Home" : "Back")}

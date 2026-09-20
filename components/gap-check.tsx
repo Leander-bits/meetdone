@@ -52,13 +52,16 @@ export function GapCheck({
   return (
     <div className="space-y-4">
       {check.blockingGaps.length > 0 && <div className="divide-y">{group(check.blockingGaps)}</div>}
+      {!check.blockingGaps.length && (
+        <p className="text-sm text-muted-foreground">{tx("No blocking issues.")}</p>
+      )}
       {check.followUpGaps.length > 0 && (
-        <details className="border-t pt-3">
-          <summary className="text-sm text-muted-foreground">
-            {tx("Follow-up gaps")} ({check.followUpGaps.length})
-          </summary>
+        <section aria-label={tx("Follow-up Issues")} className="border-t pt-3">
+          <h3 className="text-sm font-medium text-muted-foreground">
+            {tx("Follow-up Issues")} ({check.followUpGaps.length})
+          </h3>
           <div className="mt-3 divide-y">{group(check.followUpGaps)}</div>
-        </details>
+        </section>
       )}
       {prepared && (
         <div className="flex flex-wrap gap-2 border-t pt-4">

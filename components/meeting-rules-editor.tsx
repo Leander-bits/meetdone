@@ -1,6 +1,6 @@
 "use client";
 import { Plus, Trash2 } from "lucide-react";
-import { Requirement, kindLabels } from "@/lib/models";
+import { Requirement, kindLabels, actionValidation } from "@/lib/models";
 import { useI18n } from "./language-provider";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -63,6 +63,22 @@ export function MeetingRulesEditor({
                       <Trash2 size={14} />
                     </Button>
                   </div>
+                  {kind === "action" && r.level !== "record_only" && (
+                    <div className="mt-2 flex flex-wrap gap-4 pl-5 text-xs text-muted-foreground">
+                      {(["requireOwner", "requireDeadline"] as const).map((field) => (
+                        <label key={field} className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="accent-primary"
+                            aria-label={`${tx(field === "requireOwner" ? "Require owner" : "Require deadline")} ${i + 1}`}
+                            checked={actionValidation(r)[field]}
+                            onChange={(e) => patch(r.id, { [field]: e.target.checked })}
+                          />
+                          {tx(field === "requireOwner" ? "Require owner" : "Require deadline")}
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
           </div>
@@ -79,6 +95,7 @@ export function MeetingRulesEditor({
                   label: "",
                   level: "required",
                   allowsDeferral: false,
+                  ...(kind === "action" ? { requireOwner: true, requireDeadline: true } : {}),
                 },
               ])
             }

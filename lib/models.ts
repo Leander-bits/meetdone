@@ -15,6 +15,9 @@ export const requirementSchema = z.object({
   label: z.string().min(1),
   level: z.enum(["required", "recommended", "record_only"]),
   allowsDeferral: z.boolean(),
+  // Omitted flags retain the original validation for saved action requirements.
+  requireOwner: z.boolean().optional(),
+  requireDeadline: z.boolean().optional(),
   topicId: z.string().optional(),
   builtinKey: z.string().optional(),
 });
@@ -144,6 +147,9 @@ export const analysisSchema = z.object({
       id: z.string(),
       description: z.string(),
       blocking: z.boolean(),
+      // Extracted facts, not a readiness verdict. blocking is retained for old records.
+      preventsOutcome: z.boolean().optional(),
+      criticalEvidenceId: z.string().optional(),
       requirementId: z.string().optional(),
       evidenceIds: z.array(z.string()),
     }),
@@ -252,6 +258,10 @@ export type MeetingStructure = z.infer<typeof structureSchema>;
 export type Stage = z.infer<typeof stageSchema>;
 export type GoalInput = z.infer<typeof goalInputSchema>;
 export type StructureType = (typeof structureTypes)[number];
+
+export function actionValidation(r: Requirement) {
+  return { requireOwner: r.requireOwner !== false, requireDeadline: r.requireDeadline !== false };
+}
 
 // Labels and topic relationships identify meaning. Changing priority does not invent new evidence.
 export function requirementKey(r: Requirement, items: Requirement[] = []): string {

@@ -36,10 +36,21 @@ export function finalEvaluation(m: Meeting) {
     },
     {
       question: "Are there unresolved blockers preventing the meeting from ending?",
-      problem: check.readiness === "BLOCKED",
+      problem: check.blockingGaps.length > 0,
     },
   ].map((result, index) => ({
     ...result,
+    blocking:
+      result.problem &&
+      check.blockingGaps.some((g) => {
+        if (index === 0) return g.type === "topic_uncovered";
+        if (index === 1) return g.type === "speaker_missing";
+        if (index === 2)
+          return ["goal_uncovered", "conclusion_missing", "analysis_missing"].includes(g.type);
+        if (index === 3) return ["decision_pending", "unresolved_issue"].includes(g.type);
+        if (index === 4) return g.type.startsWith("action_");
+        return true;
+      }),
     answer: [2, 4].includes(index) ? !result.problem : result.problem,
   }));
 }

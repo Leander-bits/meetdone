@@ -1,6 +1,23 @@
 export type Locale = "zh" | "en";
 export const LANGUAGE_KEY = "meetdone.language";
 export const zh: Record<string, string> = {
+  "Not Ready to End": "暂不能结束",
+  "Make sure every meeting finishes with the right discussions, decisions, and owners.":
+    "让会议在结束前确认该讨论的、该决定的、该负责的都已完成。",
+  "Enter meeting name, time, and participants": "填写会议名称、时间和参会者",
+  "Select or create a meeting template": "选择或创建会议模板",
+  "Set meeting goals and structure": "设置会议目标和会议结构",
+  "Add the transcript and run AI analysis": "创建后添加会议记录并进行 AI 分析",
+  "Not specified": "未指定",
+  "Require owner": "必须指定负责人",
+  "Require deadline": "必须指定截止日期",
+  "Owner required": "需负责人",
+  "Deadline required": "需截止日期",
+  "No blocking issues.": "无阻碍事项。",
+  "Follow-up Issues": "后续事项",
+  "Owner not specified.": "未指定负责人。",
+  "Deadline not specified.": "未指定截止日期。",
+  "Create the required action output.": "创建所需的行动产出。",
   "AI Analyze Meeting": "AI分析会议",
   "Import Text": "导入文本",
   "Meeting Rules": "会议规则",

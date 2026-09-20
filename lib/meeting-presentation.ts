@@ -32,8 +32,8 @@ export function meetingPresentation(meeting: Meeting, locale: Locale) {
       decision_missing: "No decision recorded.",
       decision_pending: "Discussed, not decided",
       action_missing: "No action item recorded.",
-      action_owner: "Assign an owner.",
-      action_deadline: "Set a deadline.",
+      action_owner: gap.severity === "FOLLOW_UP" ? "Owner not specified." : "Assign an owner.",
+      action_deadline: gap.severity === "FOLLOW_UP" ? "Deadline not specified." : "Set a deadline.",
     };
     return t(reasons[gap.type] ?? gap.explanation);
   }

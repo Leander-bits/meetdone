@@ -28,7 +28,7 @@ export function AppHeader() {
 
   return (
     <header className="border-b bg-white">
-      <div className="mx-auto flex h-17 max-w-[1440px] items-center justify-between px-5 sm:px-9">
+      <div className="flex h-17 w-full items-center justify-between px-4 sm:px-6 lg:px-8">
         <Brand />
         <div className="flex items-center gap-3">
           <div
@@ -105,7 +105,7 @@ export function EvidenceList({ ids, evidence }: { ids: string[]; evidence: Evide
         {items.map((e) => (
           <blockquote
             key={e.id}
-            className="border-l-2 border-primary/30 bg-muted/60 p-3 leading-relaxed"
+            className="max-w-[90ch] break-words border-l-2 border-primary/30 bg-muted/60 p-3 leading-relaxed"
           >
             <div className="mb-1 font-semibold">
               {e.speaker || tx("Unknown speaker")}
@@ -147,7 +147,7 @@ export function LoadingWorkspace() {
   return (
     <>
       <AppHeader />
-      <main className="mx-auto max-w-6xl p-8">
+      <main className="app-page">
         <p role="status" className="text-sm text-muted-foreground">
           {tx("Opening your local workspace…")}
         </p>

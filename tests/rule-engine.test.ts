@@ -187,12 +187,20 @@ describe("deterministic completion rules", () => {
     m.analysis!.goals = [];
     m.analysis!.topics = [];
     m.analysis!.conclusions = [];
+    m.analysis!.evidence.push({
+      id: "security",
+      quote: "Security approval is pending and prevents release.",
+      speaker: "Max",
+      segmentId: "line-security",
+      transcriptRevision: m.transcript.revision,
+    });
+    m.transcript.text += "\nMax: Security approval is pending and prevents release.";
     m.analysis!.unresolvedIssues.push({
       id: "security",
       description: "Security approval is pending",
       blocking: true,
       requirementId: "l-decision",
-      evidenceIds: [],
+      evidenceIds: ["security"],
     });
     expect(new Set(evaluateMeeting(m).blockingGaps.map((g) => g.type))).toEqual(
       new Set(["goal_uncovered", "topic_uncovered", "conclusion_missing", "unresolved_issue"]),

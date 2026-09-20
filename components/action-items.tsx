@@ -6,6 +6,8 @@ import { ActionItem, Meeting } from "@/lib/models";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { EvidenceList } from "./shared";
+import { evaluateMeeting } from "@/lib/meeting-state";
+import { validDeadline } from "@/lib/rule-engine";
 
 export function ActionItems({
   meeting: m,
@@ -18,6 +20,9 @@ export function ActionItems({
 }) {
   const { t: tx, label } = useI18n();
   const { actionTitle } = useMeetingPresentation(m);
+  const blockingGaps = evaluateMeeting(m).blockingGaps;
+  const blocks = (id: string, type: "action_owner" | "action_deadline") =>
+    blockingGaps.some((g) => g.type === type && g.id.endsWith(`:${id}`));
 
   const disabled = busy || m.lifecycle !== "active";
   const patch = (id: string, change: Partial<ActionItem>) =>
@@ -90,7 +95,14 @@ export function ActionItems({
                 <span className="field-label">
                   {tx("Owner")}
                   {!(a.owner ?? "").trim() && (
-                    <span className="text-destructive">· {tx("Missing")}</span>
+                    <span
+                      className={
+                        blocks(a.id, "action_owner") ? "text-destructive" : "text-muted-foreground"
+                      }
+                    >
+                      {" "}
+                      · {tx(blocks(a.id, "action_owner") ? "Missing" : "Not specified")}
+                    </span>
                   )}
                 </span>
                 <Input
@@ -104,7 +116,18 @@ export function ActionItems({
               <label>
                 <span className="field-label">
                   {tx("Deadline")}
-                  {!a.deadline && <span className="text-destructive">· {tx("Missing")}</span>}
+                  {!validDeadline(a.deadline) && (
+                    <span
+                      className={
+                        blocks(a.id, "action_deadline")
+                          ? "text-destructive"
+                          : "text-muted-foreground"
+                      }
+                    >
+                      {" "}
+                      · {tx(blocks(a.id, "action_deadline") ? "Missing" : "Not specified")}
+                    </span>
+                  )}
                 </span>
                 <Input
                   aria-label={`${tx("Action")} ${i + 1} ${tx("Deadline")}`}

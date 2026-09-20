@@ -1,6 +1,7 @@
 import { validRequirementLists } from "./requirements";
 import { Meeting, meetingSchema } from "./models";
 import { sampleMeetings } from "./sample-meetings";
+import { checkCompletion } from "./rule-engine";
 export const STORAGE_KEY = "meetdone.workspace.v1";
 export type StorageLike = Pick<Storage, "getItem" | "setItem">;
 
@@ -61,6 +62,9 @@ export function migrateMeeting(record: unknown): Meeting | null {
   }
   // Preserve original requirements, transcripts, and ended summaries; never claim that
   // synthetic migration defaults have been analyzed.
+  if (m.lifecycle === "active" && m.completionCheck && m.analysis) {
+    m.completionCheck = checkCompletion({ ...m, transcriptRevision: m.transcript.revision });
+  }
   return m;
 }
 export function readMeetings(storage: StorageLike): {

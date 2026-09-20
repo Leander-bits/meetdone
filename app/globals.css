@@ -58,6 +58,9 @@
   }
 }
 @layer components {
+  .app-page {
+    @apply w-full min-w-0 px-4 py-6 sm:px-6 lg:px-8;
+  }
   .field-label {
     @apply mb-1.5 block text-xs font-semibold text-foreground;
   }

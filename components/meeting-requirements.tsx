@@ -1,5 +1,5 @@
 "use client";
-import { Meeting, Requirement, kindLabels } from "@/lib/models";
+import { Meeting, Requirement, kindLabels, actionValidation } from "@/lib/models";
 import { orderedRequirements, ruleKinds } from "@/lib/requirement-display";
 import { useI18n } from "./language-provider";
 
@@ -101,6 +101,16 @@ export function MeetingRequirementsView({ meeting: m }: { meeting: Meeting }) {
             <li key={r.id}>
               <span className="text-muted-foreground">{t(kindLabels[r.kind])} · </span>
               {label(r)}
+              {r.kind === "action" && (
+                <span className="block text-xs text-muted-foreground">
+                  {[
+                    actionValidation(r).requireOwner && t("Owner required"),
+                    actionValidation(r).requireDeadline && t("Deadline required"),
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </span>
+              )}
             </li>
           ))}
         </ol>

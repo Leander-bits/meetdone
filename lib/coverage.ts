@@ -1,4 +1,4 @@
-import { Meeting, Requirement, requirementKey } from "./models";
+import { Meeting, Requirement, requirementKey, actionValidation } from "./models";
 import { validDeadline } from "./rule-engine";
 
 export function coverageFor(
@@ -10,19 +10,18 @@ export function coverageFor(
     f.requirementId === r.id && f.requirementKey === requirementKey(r, m.requirements.items);
   if (r.kind === "action") {
     const items = m.actionItems.filter((a) => a.requirementId === r.id);
+    const { requireOwner, requireDeadline } = actionValidation(r);
+    const complete =
+      !!items.length &&
+      items.every(
+        (a) =>
+          !!a.description.trim() &&
+          (!requireOwner || !!a.owner?.trim()) &&
+          (!requireDeadline || validDeadline(a.deadline)),
+      );
     return {
-      label: !items.length
-        ? "Missing"
-        : items.every(
-              (a) => a.description.trim() && (a.owner ?? "").trim() && validDeadline(a.deadline),
-            )
-          ? "Complete"
-          : "Partial",
-      complete:
-        !!items.length &&
-        items.every(
-          (a) => !!a.description.trim() && !!(a.owner ?? "").trim() && validDeadline(a.deadline),
-        ),
+      label: !items.length ? "Missing" : complete ? "Complete" : "Partial",
+      complete,
       evidenceIds: items.flatMap((a) => a.evidenceIds),
     };
   }

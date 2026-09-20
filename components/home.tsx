@@ -26,8 +26,16 @@ export function Home() {
   return (
     <>
       <AppHeader />
-      <main className="mx-auto max-w-5xl px-5 py-8 sm:py-16">
+      <main className="app-page">
         {warning && <Notice error>{warning}</Notice>}
+        <header className="mb-6">
+          <h1 className="text-2xl font-semibold">MeetDone</h1>
+          <p className="mt-2 max-w-[90ch] text-sm leading-6 text-muted-foreground">
+            {tx(
+              "Make sure every meeting finishes with the right discussions, decisions, and owners.",
+            )}
+          </p>
+        </header>
         <div className="grid gap-6 md:grid-cols-2">
           <section className="relative aspect-square rounded-2xl border bg-white transition-colors hover:border-primary/50">
             <button
@@ -35,7 +43,7 @@ export function Home() {
               className="flex h-full w-full flex-col items-center justify-center gap-6 rounded-2xl focus-visible:outline-2 focus-visible:outline-primary"
             >
               <Plus strokeWidth={1.3} className="h-20 w-20 text-primary" />
-              <h1 className="text-xl font-semibold">{tx("Create Meeting")}</h1>
+              <h2 className="text-xl font-semibold">{tx("Create Meeting")}</h2>
             </button>
             <button
               popoverTarget="create-help"
@@ -47,11 +55,19 @@ export function Home() {
             <div
               id="create-help"
               popover="auto"
-              className="m-auto max-w-xs rounded-xl border bg-white p-5 text-sm leading-6 shadow-lg backdrop:bg-black/10"
+              className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-xl border bg-white p-5 text-sm leading-6 shadow-lg backdrop:bg-black/10"
             >
-              {tx(
-                "Before the meeting ends, make sure the discussion, decisions, and responsibilities are complete.",
-              )}
+              <h3 className="mb-2 font-semibold">{tx("Create Meeting")}</h3>
+              <ol className="list-decimal space-y-1 pl-5">
+                {[
+                  "Enter meeting name, time, and participants",
+                  "Select or create a meeting template",
+                  "Set meeting goals and structure",
+                  "Add the transcript and run AI analysis",
+                ].map((step) => (
+                  <li key={step}>{tx(step)}</li>
+                ))}
+              </ol>
             </div>
           </section>
           <section

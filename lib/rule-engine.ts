@@ -7,6 +7,7 @@ import {
   MeetingRequirements,
   Requirement,
   requirementKey,
+  actionValidation,
 } from "./models";
 
 export type CheckInput = {
@@ -42,11 +43,14 @@ export function checkCompletion(input: CheckInput): CompletionCheck {
     suffix = "",
     severity?: Gap["severity"],
   ) {
-    if (r?.level === "record_only" && !severity) return;
+    if (r?.level === "record_only") return;
     gaps.push({
       id: `${type}:${r?.id ?? "meeting"}${suffix}`,
       type,
-      severity: severity ?? (r?.level === "recommended" ? "FOLLOW_UP" : "BLOCKING"),
+      severity:
+        r?.level === "recommended"
+          ? "FOLLOW_UP"
+          : (severity ?? (r?.level === "required" ? "BLOCKING" : "FOLLOW_UP")),
       requirementId: r?.id,
       title:
         r?.label ??
@@ -67,6 +71,9 @@ export function checkCompletion(input: CheckInput): CompletionCheck {
       undefined,
       "The current transcript and requirements have not been analyzed.",
       "Analyze the transcript before ending the meeting.",
+      [],
+      "",
+      "BLOCKING",
     );
   } else if (analysis) {
     for (const r of requirements.items) {
@@ -128,13 +135,14 @@ export function checkCompletion(input: CheckInput): CompletionCheck {
           );
       }
       if (r.kind === "action") {
+        const { requireOwner, requireDeadline } = actionValidation(r);
         const actions = actionItems.filter((a) => a.requirementId === r.id);
         if (!actions.length)
           add(
             "action_missing",
             r,
             "The required action output has not been assigned.",
-            "Create this action with a named owner and a deadline.",
+            "Create the required action output.",
           );
         for (const a of actions) {
           if (!a.description.trim())
@@ -146,7 +154,7 @@ export function checkCompletion(input: CheckInput): CompletionCheck {
               a.evidenceIds,
               `:${a.id}`,
             );
-          if (!(a.owner ?? "").trim())
+          if (requireOwner && !(a.owner ?? "").trim())
             add(
               "action_owner",
               r,
@@ -155,7 +163,7 @@ export function checkCompletion(input: CheckInput): CompletionCheck {
               a.evidenceIds,
               `:${a.id}`,
             );
-          if (!validDeadline(a.deadline))
+          if (requireDeadline && !validDeadline(a.deadline))
             add(
               "action_deadline",
               r,
@@ -169,20 +177,37 @@ export function checkCompletion(input: CheckInput): CompletionCheck {
     }
     for (const issue of analysis.unresolvedIssues) {
       const r = requirements.items.find((r) => r.id === issue.requirementId);
+      const supported = (id: string) =>
+        issue.evidenceIds.includes(id) &&
+        analysis.evidence.some(
+          (e) =>
+            e.id === id && e.transcriptRevision === input.transcriptRevision && !!e.quote.trim(),
+        );
+      // Legacy boolean alone is not enough. An issue needs a required-outcome
+      // relationship or an explicit critical statement, with current evidence.
+      const preventsRequiredOutcome =
+        r?.level === "required" &&
+        (issue.preventsOutcome ?? issue.blocking) &&
+        issue.evidenceIds.some(supported);
+      const explicitlyCritical = !!issue.criticalEvidenceId && supported(issue.criticalEvidenceId);
+      const blocking =
+        (preventsRequiredOutcome || explicitlyCritical) && (!r || r.level === "required");
       add(
         "unresolved_issue",
         r,
         issue.description,
-        issue.blocking
+        blocking
           ? "Resolve the issue preventing the required outcome."
           : "Assign a follow-up to track this open issue.",
         issue.evidenceIds,
         `:${issue.id}`,
-        issue.blocking ? "BLOCKING" : "FOLLOW_UP",
+        blocking ? "BLOCKING" : "FOLLOW_UP",
       );
     }
     // Ad-hoc follow-ups still surface incomplete commitments.
-    for (const a of actionItems.filter((a) => !a.requirementId)) {
+    for (const a of actionItems.filter(
+      (a) => !requirements.items.some((r) => r.id === a.requirementId && r.kind === "action"),
+    )) {
       if (!a.description.trim())
         add(
           "action_missing",

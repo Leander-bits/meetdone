@@ -26,11 +26,13 @@ export async function saved(page: Page) {
   );
 }
 // Exercise explicit AI requests with deterministic HTTP fixtures; no product mock mode.
-export async function analyzeSample(page: Page, scenarioId = "launch-incomplete") {
+export async function mockSampleAnalysis(page: Page, scenarioId = "launch-incomplete") {
+  let requests = 0;
   const { scenarios } = await import("../tests/fixtures/demo");
   const scenario = scenarios.find((s) => s.id === scenarioId)!;
-  await page.getByRole("textbox", { name: "Transcript", exact: true }).fill(scenario.transcript);
+  await page.locator("#transcript").fill(scenario.transcript);
   await page.route("**/api/analyze-meeting", async (route) => {
+    requests += 1;
     const input = route.request().postDataJSON();
     await route.fulfill({
       json: {
@@ -50,6 +52,10 @@ export async function analyzeSample(page: Page, scenarioId = "launch-incomplete"
       },
     });
   });
+  return () => requests;
+}
+export async function analyzeSample(page: Page, scenarioId = "launch-incomplete") {
+  await mockSampleAnalysis(page, scenarioId);
   await page.getByRole("button", { name: "AI Analyze Meeting", exact: true }).click();
   await expect(page.getByRole("heading", { name: "AI Analysis", exact: true })).toBeVisible();
 }

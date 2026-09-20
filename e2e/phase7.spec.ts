@@ -83,7 +83,7 @@ test("creation and editing share expanded ordered rules, numbering and deferral 
       "title",
       "Allow conversion into a follow-up action with owner and deadline",
     );
-    await expect(rules.getByRole("checkbox")).toHaveCount(0);
+    await expect(topics.getByRole("checkbox")).toHaveCount(0);
   };
   await checkRules(page.getByRole("dialog"));
   await page.getByRole("button", { name: "Create Meeting", exact: true }).click();

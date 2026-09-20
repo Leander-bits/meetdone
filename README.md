@@ -50,6 +50,9 @@ CompletionCheck → UI → explicit end action → summary.md
 - Zod validates requests, model output and normalized analysis. Quotes and speaker attribution are verified against numbered transcript lines. Unsupported findings remain missing; unsupported owners/deadlines are null.
 - The model extracts facts, never readiness. Presence is not an opinion; discussion is not a decision. Required matrix participation is evaluated per stage. Order is guidance only.
 - Transcript/requirement changes clear analysis and completion. Action edits invalidate completion. Stale asynchronous responses are rejected.
+- Blocking gaps are limited to missing required outcomes and evidenced critical issues. Recommended requirements and incidental commitments are follow-ups; record-only requirements do not gate completion.
+- Action outputs support `requireOwner` and `requireDeadline`. Omitted flags default to `true` for existing meetings/templates. Only enabled fields are validated; incidental actions with missing fields remain follow-ups. The action-field check can say No while overall readiness is READY.
+- Unresolved issues carry extraction facts (`preventsOutcome`, `criticalEvidenceId`). The engine checks requirement priority and current evidence; a legacy `blocking` flag alone is insufficient. Explicit critical statements can block without a requirement link. The provider never determines readiness.
 - Exceptions require a reason and remain `ended_with_exceptions` with blocked readiness. Conversion to an owned, dated action only defers requirements that explicitly allow it.
 
 The provider contract and rule engine remain separate; another extraction provider can use the same boundary.
@@ -79,13 +82,13 @@ Schedules currently cover same-day meetings from 5 minutes to 12 hours, in five-
 
 ## Workspace and demos
 
-The home page has Create Meeting and Existing Meetings modules. First use loads three fully configured fictional meetings with Chinese dialogue and no analysis:
+The home page has a compact bilingual product header, Create Meeting and Existing Meetings modules, and four short help steps. Home, creation/editing overlays, workspace, analysis and summary use the available viewport width with responsive padding; long prose retains a readable line length. Participant rows reserve identical delete-control space, including the protected first row. First use loads three fully configured fictional meetings with Chinese dialogue and no analysis:
 
 - Mobile feature launch review: time sequence. The sample intentionally leaves Sales input, a final decision, an action owner and a deadline unresolved. Add discussion in the editor and re-analyze to resolve them.
 - Two-week sprint retrospective: stage progression, with a deferred tooling topic.
 - Customer onboarding progress: stage/speaker matrix, with noncritical follow-ups.
 
-The workspace shows transcript and numbered requirements side by side, followed by one full-width analysis section. Point-by-point evidence, six final evaluation questions and blocking/follow-up issues come from structured state.
+The workspace shows transcript and numbered requirements side by side, followed by one full-width analysis section. Prepare to End Meeting runs the same AI request as AI Analyze Meeting, without requiring a separate analysis click. After a successful request, the top button becomes End Meeting or Not Ready to End. Ending remains an explicit second action; failures offer preparation again. Reopening a saved meeting keeps its analysis visible and offers a fresh preparation check. Point-by-point evidence, six final evaluation questions and blocking/follow-up issues come from structured state.
 
 Continue Discussion focuses the transcript. Convert Gap to Action Item requires description, owner and date. Blocked meetings require End with Exception and a reason. Ready meetings have End Meeting. The end action runs the current deterministic check before committing a lifecycle change.
 
@@ -100,6 +103,7 @@ Chinese is the default. 中文 / EN is persisted under `meetdone.language`. The 
 - `meetdone.workspace.v1` now stores envelope **version 3**; versions 1 and 2 are read per record.
 - `meetdone.templates.v1` stores envelope **version 2**, with legacy custom-template migration.
 - Older meetings retain their requirements, transcript and existing summary. Missing scheduling/participant metadata is marked for review, without fabricating actual people. Corrupt records do not prevent valid records loading. Duplicate IDs are rejected.
+- Active cached completion results are recalculated with the current rules; historical ended summaries remain unchanged.
 - Active legacy mock analyses are cleared on load, along with mock actions and completion checks; original content and host-created actions remain. Genuine AI analyses and historical ended summaries are preserved. Archived mock summaries display as saved summaries, never as AI results.
 - Recovery copies use `meetdone.workspace.recovery` and `meetdone.templates.recovery` when browser storage permits. The first backup is preserved.
 - Meeting/template deletion requires UI confirmation. Cancel does not write. Template deletion never deletes meetings. Deleting every meeting preserves an empty workspace.

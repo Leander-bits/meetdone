@@ -27,6 +27,8 @@ import { useI18n } from "./language-provider";
 import { useWorkspace } from "./workspace-store";
 import { AppHeader, EvidenceList, LoadingWorkspace, Notice, meetingStatus } from "./shared";
 import { TranscriptPanel } from "./transcript-panel";
+import { useMeetingAnalysis } from "./use-meeting-analysis";
+import { readinessAction } from "@/lib/readiness-action";
 import { coverageFor } from "@/lib/coverage";
 import { ActionItems } from "./action-items";
 import { GapCheck } from "./gap-check";
@@ -61,12 +63,12 @@ function EditConfiguration({
     <Dialog open onOpenChange={(open) => !open && close()}>
       <DialogContent
         aria-describedby={undefined}
-        className="flex max-h-[90dvh] flex-col overflow-hidden sm:max-w-4xl"
+        className="!inset-0 !flex !h-dvh !w-full !max-w-none !translate-x-0 !translate-y-0 flex-col overflow-hidden !rounded-none border-0 p-0"
       >
-        <DialogHeader>
+        <DialogHeader className="shrink-0 border-b px-4 py-5 pr-12 sm:px-6 lg:px-8">
           <DialogTitle>{tx("Meeting Requirements")}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-6 overflow-y-auto pr-1">
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
           <label className="block">
             <span className="field-label">{tx("Meeting name")}</span>
             <Input value={title} maxLength={140} onChange={(e) => setTitle(e.target.value)} />
@@ -85,7 +87,7 @@ function EditConfiguration({
             <MeetingRulesEditor rules={rules} onChange={setRules} />
           </section>
         </div>
-        <DialogFooter>
+        <DialogFooter className="shrink-0 border-t bg-white px-4 py-4 sm:px-6 lg:px-8">
           <Button variant="ghost" onClick={close}>
             {tx("Cancel")}
           </Button>
@@ -123,7 +125,8 @@ export function MeetingWorkspace({ id }: { id: string }) {
   const { t: tx, label, title, locale } = useI18n();
   const { loaded, meetings, warning, updateMeeting } = useWorkspace();
   const [editing, setEditing] = useState(false);
-  const [pending, setPending] = useState(false);
+  const { pending, analyzed, failure, analyze, clearFailure } = useMeetingAnalysis();
+  const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const actionsRef = useRef<HTMLDetailsElement>(null);
   if (!loaded) return <LoadingWorkspace />;
@@ -132,7 +135,7 @@ export function MeetingWorkspace({ id }: { id: string }) {
     return (
       <>
         <AppHeader />
-        <main className="mx-auto max-w-xl p-8">
+        <main className="app-page">
           <h1>{tx("Meeting not found in this browser")}</h1>
           <Link href="/">{tx("Back")}</Link>
         </main>
@@ -140,6 +143,7 @@ export function MeetingWorkspace({ id }: { id: string }) {
     );
   const ended = m.lifecycle !== "active";
   const check = evaluateMeeting(m);
+  const endAction = readinessAction(m, pending, !!failure || !analyzed);
   const nextSpeaker = m.structure.speakerOrder
     .map((id) =>
       m.requirements.items.find((r) => r.id === `speaker-all-${id}` && r.level === "required"),
@@ -165,10 +169,30 @@ export function MeetingWorkspace({ id }: { id: string }) {
     document.getElementById("transcript")?.focus();
     document.getElementById("transcript")?.scrollIntoView({ block: "center" });
   };
+  const analyzeCurrent = () => {
+    if (importing) return;
+    clearFailure();
+    void analyze(m, (analysis, revision) =>
+      perform((current) => applyAnalysis(current, analysis, revision)),
+    );
+  };
+  const finishMeeting = (reason?: string) => {
+    let finished: Meeting | undefined;
+    if (
+      perform((current) => {
+        finished = endMeeting(prepareMeeting(current), reason);
+        return finished;
+      }) &&
+      finished
+    ) {
+      downloadSummary(finished, locale);
+      window.scrollTo(0, 0);
+    }
+  };
   return (
     <>
       <AppHeader />
-      <main className="mx-auto max-w-6xl px-5 py-6">
+      <main className="app-page">
         <Link
           href="/"
           className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground"
@@ -177,18 +201,27 @@ export function MeetingWorkspace({ id }: { id: string }) {
           {tx("Back")}
         </Link>
         <header className="mb-7 flex flex-wrap items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="break-words text-2xl font-semibold">{title(m)}</h1>
             <p className="mt-2 text-xs text-muted-foreground">
               {scheduleText(m) ?? tx("Schedule not recorded")}
             </p>
           </div>
-          <p
-            role="status"
-            className={`text-sm font-semibold ${m.analysis && !pending && check.readiness === "READY" ? "text-primary" : "text-muted-foreground"}`}
-          >
-            {tx(meetingStatus(m, pending))}
-          </p>
+          <div data-readiness-action>
+            <p role="status" className={ended ? "text-sm font-semibold" : "sr-only"}>
+              {tx(meetingStatus(m, pending))}
+            </p>
+            {!ended && (
+              <Button
+                className="min-w-48 bg-foreground text-white hover:bg-foreground/90"
+                disabled={pending || importing}
+                aria-busy={pending}
+                onClick={endAction === "End Meeting" ? () => finishMeeting() : analyzeCurrent}
+              >
+                {tx(endAction)}
+              </Button>
+            )}
+          </div>
         </header>
         {warning && <Notice error>{warning}</Notice>}
         {error && <Notice error>{error}</Notice>}
@@ -203,10 +236,11 @@ export function MeetingWorkspace({ id }: { id: string }) {
                   meeting={m}
                   update={perform}
                   pending={pending}
-                  onPendingChange={setPending}
-                  onAnalysis={(analysis, revision) =>
-                    perform((current) => applyAnalysis(current, analysis, revision))
-                  }
+                  importing={importing}
+                  onImportingChange={setImporting}
+                  analysisFailure={failure}
+                  clearAnalysisFailure={clearFailure}
+                  onAnalysis={analyzeCurrent}
                 />
               </div>
               <section className="min-w-0" aria-labelledby="requirements-heading">
@@ -286,7 +320,7 @@ export function MeetingWorkspace({ id }: { id: string }) {
                       >
                         <span>{tx(answer.question)}</span>
                         <span
-                          className={`shrink-0 text-xs ${answer.problem ? "text-amber-800" : "text-primary"}`}
+                          className={`shrink-0 text-xs ${answer.blocking ? "text-amber-800" : answer.problem ? "text-muted-foreground" : "text-primary"}`}
                         >
                           {tx(answer.answer ? "Yes" : "No")}
                         </span>
@@ -306,7 +340,7 @@ export function MeetingWorkspace({ id }: { id: string }) {
                   </div>
                 </details>
                 <h3 className="mb-4 font-semibold">
-                  {tx(check.blockingGaps.length ? "Blocking Issues" : "Ready to End")}
+                  {tx("Blocking Issues")} ({check.blockingGaps.length})
                 </h3>
                 <GapCheck
                   meeting={m}
@@ -317,19 +351,7 @@ export function MeetingWorkspace({ id }: { id: string }) {
                   onConvert={(gap, action) => {
                     if (perform((current) => convertGap(current, gap, action))) showActions();
                   }}
-                  onEnd={(reason) => {
-                    let finished: Meeting | undefined;
-                    if (
-                      perform((current) => {
-                        finished = endMeeting(prepareMeeting(current), reason);
-                        return finished;
-                      }) &&
-                      finished
-                    ) {
-                      downloadSummary(finished, locale);
-                      window.scrollTo(0, 0);
-                    }
-                  }}
+                  onEnd={finishMeeting}
                 />
               </section>
             )}
@@ -340,7 +362,10 @@ export function MeetingWorkspace({ id }: { id: string }) {
         <EditConfiguration
           meeting={m}
           close={() => setEditing(false)}
-          save={(updated) => perform(() => updated)}
+          save={(updated) => {
+            clearFailure();
+            return perform(() => updated);
+          }}
         />
       )}
     </>

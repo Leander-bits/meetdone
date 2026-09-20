@@ -23,7 +23,9 @@ export function MeetingSummaryView({ meeting: m }: { meeting: Meeting }) {
       {items.length ? (
         <ul className="list-disc space-y-1.5 pl-4 text-sm leading-6">
           {items.map((item, i) => (
-            <li key={i}>{item}</li>
+            <li key={i} className="max-w-[90ch] break-words">
+              {item}
+            </li>
           ))}
         </ul>
       ) : (
@@ -32,7 +34,7 @@ export function MeetingSummaryView({ meeting: m }: { meeting: Meeting }) {
     </section>
   );
   return (
-    <div className="max-w-4xl">
+    <div className="w-full min-w-0" data-meeting-summary>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <h2 className="section-title">{tx("Meeting summary")}</h2>
         <Button variant="ghost" size="sm" onClick={() => downloadSummary(m, locale)}>
@@ -79,7 +81,9 @@ export function MeetingSummaryView({ meeting: m }: { meeting: Meeting }) {
               <tbody>
                 {s.actionItems.map((a) => (
                   <tr key={a.id} className="border-b last:border-0">
-                    <td className="min-w-40 py-3 pr-4">{actionTitle(a)}</td>
+                    <td className="min-w-40 py-3 pr-4">
+                      <p className="max-w-[90ch] break-words">{actionTitle(a)}</p>
+                    </td>
                     <td className="py-3 pr-4">{a.owner || tx("Unassigned")}</td>
                     <td className="whitespace-nowrap py-3 pr-4">{a.deadline || tx("Missing")}</td>
                     <td className="whitespace-nowrap py-3">
