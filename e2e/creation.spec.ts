@@ -1,3 +1,5 @@
+import { addParticipant } from "./helpers";
+import { setTime } from "./helpers";
 import { test, expect } from "@playwright/test";
 import { details, english, configuration, saved } from "./helpers";
 
@@ -55,12 +57,18 @@ test("Page 1 validates date, time, email and editable display name; close confir
   await page.getByRole("button", { name: "Discard", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await details(page);
-  await page.getByLabel("Display name 1", { exact: true }).fill("Jiaheng");
-  await page.getByLabel("Email 1", { exact: true }).fill("new@example.com");
-  await expect(page.getByLabel("Display name 1", { exact: true })).toHaveValue("Jiaheng");
-  await page.getByLabel("End time", { exact: true }).fill("08:30");
+  await page
+    .getByRole("button", {
+      name: "Edit participant: zhaojiaheng@superintelligence.com",
+      exact: true,
+    })
+    .click();
+  await page.getByLabel("Display name", { exact: true }).fill("Jiaheng");
+  await addParticipant(page, "new@example.com");
+  await expect(page.getByLabel("Display name", { exact: true })).toHaveValue("Jiaheng");
+  await setTime(page, "End time", "08:30");
   await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeDisabled();
-  await page.getByLabel("End time", { exact: true }).fill("09:30");
+  await setTime(page, "End time", "09:30");
   await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeEnabled();
 });
 test("template selection, protected built-ins and dynamic goals persist with meeting metadata", async ({

@@ -1,6 +1,14 @@
 export type Locale = "zh" | "en";
 export const LANGUAGE_KEY = "meetdone.language";
 export const zh: Record<string, string> = {
+  Hour: "小时",
+  Minute: "分钟",
+  "Participant email": "参与者邮箱",
+  "Enter an email and press Enter": "输入邮箱，回车添加",
+  "Enter a valid email address": "请输入有效的邮箱地址",
+  "This participant has already been added": "该参与者已添加",
+  "You can add up to 30 participants": "最多添加 30 位参与者",
+  "Edit participant": "编辑参与者",
   "Basic Information": "基本信息",
   "Meeting Template": "会议模板",
   "Goals and Structure": "目标与结构",

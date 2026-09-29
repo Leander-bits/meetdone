@@ -1,3 +1,5 @@
+import { setTime } from "./helpers";
+import { addParticipant } from "./helpers";
 import { test, expect, type Page } from "@playwright/test";
 import { details, english, saved, keyboardReorder } from "./helpers";
 import { translate } from "../lib/i18n";
@@ -6,8 +8,7 @@ async function selection(page: Page, count = 2) {
   await english(page);
   await details(page);
   for (let i = 2; i <= count; i++) {
-    await page.getByRole("button", { name: "Add participant", exact: true }).click();
-    await page.getByLabel(`Email ${i}`, { exact: true }).fill(`person${i}@example.com`);
+    await addParticipant(page, `person${i}@example.com`);
   }
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Product Launch Decision", exact: true }).click();
@@ -22,12 +23,12 @@ test("Chinese creation uses goal tooltips, examples and compact speaker controls
   for (const [name, value] of [
     ["会议名称", "用户填写的会议"],
     ["日期", "2026-09-22"],
-    ["开始时间", "09:00"],
-    ["结束时间", "09:30"],
-    ["邮箱 1", "devi@example.com"],
   ]) {
     await page.getByLabel(name, { exact: true }).fill(value);
   }
+  await setTime(page, translate("zh", "Start time"), "09:00", "zh");
+  await setTime(page, translate("zh", "End time"), "09:30", "zh");
+  await addParticipant(page, "devi@example.com", "zh");
   await page.getByRole("button", { name: "继续", exact: true }).click();
   await page
     .getByRole("button", { name: translate("zh", "Product Launch Decision"), exact: true })

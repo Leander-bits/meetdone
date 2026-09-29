@@ -1,3 +1,4 @@
+import { addParticipant } from "./helpers";
 import { test, expect } from "@playwright/test";
 import { details, english, saved, keyboardReorder, pointerReorder } from "./helpers";
 import { translate } from "../lib/i18n";
@@ -8,8 +9,7 @@ test("matrix creation preserves per-stage assignments, ordering, goals and minim
   await english(page);
   await details(page);
   for (let i = 2; i <= 3; i++) {
-    await page.getByRole("button", { name: "Add participant", exact: true }).click();
-    await page.getByLabel(`Email ${i}`, { exact: true }).fill(`person${i}@example.com`);
+    await addParticipant(page, `person${i}@example.com`);
   }
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Customer Progress Meeting", exact: true }).click();

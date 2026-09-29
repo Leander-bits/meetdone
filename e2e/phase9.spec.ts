@@ -1,3 +1,5 @@
+import { addParticipant } from "./helpers";
+import { setTime } from "./helpers";
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { english, mockSampleAnalysis, saved } from "./helpers";
 import { translate, type Locale } from "../lib/i18n";
@@ -143,28 +145,24 @@ for (const width of [1440, 1280, 768, 390]) {
       await expect(page.locator("#create-help")).not.toBeVisible();
       await page.getByRole("button", { name: t("Create Meeting"), exact: true }).click();
       await fullWidth(page.getByRole("dialog"), width);
-      await page.getByRole("button", { name: t("Add participant"), exact: true }).click();
-      await expect(
-        page.getByRole("button", { name: `${t("Remove participant")} 1`, exact: true }),
-      ).toHaveCount(0);
-      for (const field of ["Email", "Display name"]) {
-        const first = (await page.getByLabel(`${t(field)} 1`, { exact: true }).boundingBox())!;
-        const second = (await page.getByLabel(`${t(field)} 2`, { exact: true }).boundingBox())!;
-        expect(Math.abs(first.width - second.width)).toBeLessThan(1);
-        expect(Math.abs(first.x - second.x)).toBeLessThan(1);
-      }
+      await addParticipant(page, "first@example.com", locale);
+      await addParticipant(page, "second@example.com", locale);
+      await expect(page.locator("[data-participant-chip]")).toHaveText(["first", "second"]);
       await noOverflow(page);
-      await page.getByRole("button", { name: `${t("Remove participant")} 2`, exact: true }).click();
+      for (const email of ["first@example.com", "second@example.com"])
+        await page
+          .getByRole("button", { name: `${t("Remove participant")}: ${email}`, exact: true })
+          .click();
       await page.getByLabel(t("Meeting name"), { exact: true }).fill("用户内容 stays unchanged");
       await page.getByLabel(t("Date"), { exact: true }).fill("2026-09-22");
-      await page.getByLabel(t("Start time"), { exact: true }).fill("20:20");
-      await page.getByLabel(t("End time"), { exact: true }).fill("19:20");
+      await setTime(page, t("Start time"), "20:20", locale);
+      await setTime(page, t("End time"), "19:20", locale);
       await expect(page.getByRole("dialog").getByRole("alert")).toHaveText(
         t("End time must be later than start time"),
       );
       await expect(page.getByRole("button", { name: t("Continue"), exact: true })).toBeDisabled();
-      await page.getByLabel(t("End time"), { exact: true }).fill("20:50");
-      await page.getByLabel(`${t("Email")} 1`, { exact: true }).fill("host@example.com");
+      await setTime(page, t("End time"), "20:50", locale);
+      await addParticipant(page, "host@example.com", locale);
       await page.getByRole("button", { name: t("Continue"), exact: true }).click();
       await page.getByRole("button", { name: t("Product Launch Decision"), exact: true }).click();
       await page.getByRole("button", { name: t("Continue"), exact: true }).click();

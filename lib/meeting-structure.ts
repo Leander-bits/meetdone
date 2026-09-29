@@ -8,6 +8,9 @@ import {
   StructureType,
 } from "./models";
 import { validRequirementLists } from "./requirements";
+import { z } from "zod";
+
+const participantEmailSchema = z.email();
 
 export const structureNames: Record<StructureType, string> = {
   time: "Time Sequence",
@@ -106,13 +109,20 @@ export function validSchedule(date: string, start: string, end: string, timezone
     duration % 5 === 0
   );
 }
+export function validParticipantEmail(email: string) {
+  return (
+    email.length <= 254 &&
+    email.split("@")[0].length <= 64 &&
+    participantEmailSchema.safeParse(email).success
+  );
+}
 export function validParticipants(people: Participant[]) {
   return (
     people.length > 0 &&
     people.length <= 30 &&
     new Set(people.map((p) => p.id)).size === people.length &&
     new Set(people.map((p) => p.email.toLowerCase())).size === people.length &&
-    people.every((p) => p.name.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email))
+    people.every((p) => p.name.trim() && validParticipantEmail(p.email))
   );
 }
 export function moveItem<T>(items: T[], from: number, to: number): T[] {

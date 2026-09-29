@@ -1,3 +1,4 @@
+import { translate, type Locale } from "../lib/i18n";
 import { expect, type Locator, type Page } from "@playwright/test";
 export async function english(page: Page) {
   await page.goto("/");
@@ -7,10 +8,10 @@ export async function details(page: Page, name = "My custom meeting") {
   await page.getByRole("button", { name: "Create Meeting", exact: true }).click();
   await page.getByLabel("Meeting name", { exact: true }).fill(name);
   await page.getByLabel("Date", { exact: true }).fill("2026-09-22");
-  await page.getByLabel("Start time", { exact: true }).fill("09:00");
-  await page.getByLabel("End time", { exact: true }).fill("09:30");
-  await page.getByLabel("Email 1", { exact: true }).fill("zhaojiaheng@superintelligence.com");
-  await expect(page.getByLabel("Display name 1", { exact: true })).toHaveValue("zhaojiaheng");
+  await setTime(page, "Start time", "09:00");
+  await setTime(page, "End time", "09:30");
+  await addParticipant(page, "zhaojiaheng@superintelligence.com");
+  await expect(page.locator("[data-participant-chip]").first()).toHaveText("zhaojiaheng");
   await page.getByLabel("Timezone", { exact: true }).selectOption("Europe/Berlin");
   await expect(page.getByText("UTC+02:00", { exact: false }).first()).toBeVisible();
 }
@@ -90,4 +91,23 @@ export async function keyboardReorder(page: Page, from: Locator, to: Locator, di
   await page.keyboard.press(direction);
   await expect(to).toHaveAttribute("data-drag-over", "true");
   await page.keyboard.press("Space");
+}
+
+export async function setTime(page: Page, label: string, value: string, locale: Locale = "en") {
+  const [hour, minute] = value.split(":");
+  const group = page.getByRole("group", { name: label, exact: true });
+  await group
+    .getByRole("combobox", { name: `${label} \u00b7 ${translate(locale, "Hour")}`, exact: true })
+    .selectOption(hour);
+  await group
+    .getByRole("combobox", { name: `${label} \u00b7 ${translate(locale, "Minute")}`, exact: true })
+    .selectOption(minute);
+}
+export async function addParticipant(page: Page, email: string, locale: Locale = "en") {
+  const input = page.getByRole("textbox", {
+    name: translate(locale, "Participant email"),
+    exact: true,
+  });
+  await input.fill(email);
+  await input.press("Enter");
 }

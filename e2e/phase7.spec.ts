@@ -1,3 +1,4 @@
+import { setTime } from "./helpers";
 import { test, expect, type Locator } from "@playwright/test";
 import { pointerReorder, analyzeSample, configuration, details, english, saved } from "./helpers";
 
@@ -14,30 +15,33 @@ async function recommendedGoals(row: Locator) {
   await expect(row.locator("[data-item-number]").nth(2)).toHaveText("b.");
 }
 
-test("time errors are immediate, preserve input, and protect the first participant", async ({
-  page,
-}) => {
+test("time errors are immediate, preserve input, and retain participants", async ({ page }) => {
   await english(page);
   await details(page);
   await expect(page.getByText(/Same-day meeting|5-minute increments|Maximum 12 hours/)).toHaveCount(
     0,
   );
-  await page.getByLabel("Start time", { exact: true }).fill("20:20");
-  await page.getByLabel("End time", { exact: true }).fill("19:20");
+  await setTime(page, "Start time", "20:20");
+  await setTime(page, "End time", "19:20");
   await expect(page.getByRole("alert")).toHaveText("End time must be later than start time");
   for (const field of ["Start time", "End time"])
-    await expect(page.getByLabel(field, { exact: true })).toHaveAttribute("aria-invalid", "true");
-  await expect(page.getByLabel("End time", { exact: true })).toHaveValue("19:20");
+    await expect(
+      page.getByRole("group", { name: field, exact: true }).getByRole("combobox").first(),
+    ).toHaveAttribute("aria-invalid", "true");
+  await expect(
+    page.getByRole("group", { name: "End time", exact: true }).getByRole("combobox").first(),
+  ).toHaveValue("19");
   await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeDisabled();
-  await page.getByLabel("End time", { exact: true }).fill("20:50");
+  await setTime(page, "End time", "20:50");
   await expect(page.getByRole("alert")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeEnabled();
-  await page.getByRole("button", { name: "Add participant", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Remove participant 1", exact: true })).toHaveCount(
-    0,
-  );
-  await page.getByRole("button", { name: "Remove participant 2", exact: true }).click();
-  await expect(page.getByLabel("Display name 1", { exact: true })).toBeEditable();
+  await page
+    .getByRole("button", {
+      name: "Edit participant: zhaojiaheng@superintelligence.com",
+      exact: true,
+    })
+    .click();
+  await expect(page.getByLabel("Display name", { exact: true })).toBeEditable();
 });
 
 test("creation and editing share expanded ordered rules, numbering and deferral icon", async ({

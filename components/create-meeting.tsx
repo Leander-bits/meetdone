@@ -1,14 +1,13 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Clock3, Plus, Trash2, X, CalendarDays } from "lucide-react";
+import { ArrowLeft, ArrowRight, Plus, Trash2, X, CalendarDays } from "lucide-react";
 import { MeetingTemplate, Participant, Requirement, MeetingStructure } from "@/lib/models";
 import { templates } from "@/lib/templates";
 import { blankTemplate, isBuiltinTemplate } from "@/lib/custom-templates";
 import { createMeeting } from "@/lib/meeting-factory";
 import {
   compileRequirements,
-  displayNameFromEmail,
   durationMinutes,
   reusableTemplate,
   validConfiguration,
@@ -16,6 +15,8 @@ import {
   validSchedule,
   timezoneOffset,
 } from "@/lib/meeting-structure";
+import { MeetingTimePicker } from "./meeting-time-picker";
+import { ParticipantInput } from "./participant-input";
 import { BasicInformationHeader } from "./basic-information-header";
 import { MeetingRulesEditor } from "./meeting-rules-editor";
 import { StructureEditor, MeetingGoalsEditor } from "./structure-editor";
@@ -39,9 +40,8 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
   const [timezone, setTimezone] = useState(
     () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
   );
-  const [participants, setParticipants] = useState<Participant[]>([
-    { id: crypto.randomUUID(), email: "", name: "", role: "Other" },
-  ]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [participantDraft, setParticipantDraft] = useState("");
   const [selected, setSelected] = useState<MeetingTemplate | null>(null);
   const [goals, setGoals] = useState<Requirement[]>([]);
   const [structure, setStructure] = useState<MeetingStructure | null>(null);
@@ -61,7 +61,8 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
   const pageOneValid =
     !!name.trim() &&
     validSchedule(date, startTime, endTime, timezone) &&
-    validParticipants(participants);
+    validParticipants(participants) &&
+    !participantDraft.trim();
   const valid =
     !!structure &&
     validConfiguration(goals, structure, participants, duration, selected?.rules ?? []);
@@ -73,8 +74,6 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
     setTemplateName(isBuiltinTemplate(template.id) ? "" : template.name);
     setSavedMessage(false);
   };
-  const personUpdate = (id: string, patch: Partial<Participant>) =>
-    setParticipants((list) => list.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   function finish() {
     if (!selected || !structure || !valid || !pageOneValid) return;
     const requirements = compileRequirements(goals, structure, participants, selected.rules);
@@ -152,42 +151,28 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                           onChange={(e) => setDate(e.target.value)}
                         />
                       </label>
-                      <label>
-                        <span className="field-label flex items-center gap-1">
-                          <Clock3 size={14} />
-                          {tx("Start time")}
-                        </span>
-                        <Input
-                          aria-invalid={!!timeError}
-                          aria-describedby={timeError ? "meeting-time-error" : undefined}
-                          type="time"
-                          step={300}
-                          required
-                          value={startTime}
-                          onChange={(e) => {
-                            setStart(e.target.value);
-                            setStructure(null);
-                          }}
-                        />
-                      </label>
-                      <label>
-                        <span className="field-label flex items-center gap-1">
-                          <Clock3 size={14} />
-                          {tx("End time")}
-                        </span>
-                        <Input
-                          aria-invalid={!!timeError}
-                          aria-describedby={timeError ? "meeting-time-error" : undefined}
-                          type="time"
-                          step={300}
-                          required
-                          value={endTime}
-                          onChange={(e) => {
-                            setEnd(e.target.value);
-                            setStructure(null);
-                          }}
-                        />
-                      </label>
+                      <MeetingTimePicker
+                        label={tx("Start time")}
+                        value={startTime}
+                        invalid={!!timeError}
+                        describedBy={timeError ? "meeting-time-error" : undefined}
+                        onChange={(value) => {
+                          setDirty(true);
+                          setStart(value);
+                          setStructure(null);
+                        }}
+                      />
+                      <MeetingTimePicker
+                        label={tx("End time")}
+                        value={endTime}
+                        invalid={!!timeError}
+                        describedBy={timeError ? "meeting-time-error" : undefined}
+                        onChange={(value) => {
+                          setDirty(true);
+                          setEnd(value);
+                          setStructure(null);
+                        }}
+                      />
                     </div>
                     {timeError && (
                       <p id="meeting-time-error" role="alert" className="text-sm text-destructive">
@@ -213,77 +198,19 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                       {timezoneOffset(timezone, date, startTime)}
                     </p>
                   </fieldset>
-                  <fieldset>
-                    <legend className="mb-3 text-sm font-semibold">{tx("Participants")}</legend>
-                    <div className="space-y-3 rounded-xl border bg-card p-3 sm:p-4">
-                      {participants.map((p, i) => (
-                        <div key={p.id} className="flex items-end gap-2">
-                          <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
-                            <label>
-                              <span className="field-label">
-                                {tx("Email")} {i + 1}
-                              </span>
-                              <Input
-                                type="email"
-                                value={p.email}
-                                onChange={(e) =>
-                                  personUpdate(p.id, {
-                                    email: e.target.value,
-                                    ...(!p.name || p.name === displayNameFromEmail(p.email)
-                                      ? { name: displayNameFromEmail(e.target.value) }
-                                      : {}),
-                                  })
-                                }
-                              />
-                            </label>
-                            <label>
-                              <span className="field-label">
-                                {tx("Display name")} {i + 1}
-                              </span>
-                              <Input
-                                value={p.name}
-                                maxLength={100}
-                                onChange={(e) => personUpdate(p.id, { name: e.target.value })}
-                              />
-                            </label>
-                          </div>
-                          <div className="h-9 w-9 shrink-0" data-participant-delete-slot>
-                            {i > 0 && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                aria-label={`${tx("Remove participant")} ${i + 1}`}
-                                onClick={() => {
-                                  setDirty(true);
-                                  setParticipants(participants.filter((x) => x.id !== p.id));
-                                  setStructure(null);
-                                }}
-                              >
-                                <Trash2 size={15} />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <Button
-                      className="mt-3"
-                      variant="ghost"
-                      size="sm"
-                      disabled={participants.length >= 30}
-                      onClick={() => {
-                        setDirty(true);
-                        setParticipants([
-                          ...participants,
-                          { id: crypto.randomUUID(), email: "", name: "", role: "Other" },
-                        ]);
-                        setStructure(null);
-                      }}
-                    >
-                      <Plus size={15} />
-                      {tx("Add participant")}
-                    </Button>
-                  </fieldset>
+                  <ParticipantInput
+                    participants={participants}
+                    draft={participantDraft}
+                    onDraftChange={(value) => {
+                      setParticipantDraft(value);
+                      setDirty(true);
+                    }}
+                    onChange={(people) => {
+                      setDirty(true);
+                      setParticipants(people);
+                      setStructure(null);
+                    }}
+                  />
                 </>
               )}
               {page === 2 && (

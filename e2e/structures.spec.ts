@@ -1,11 +1,11 @@
+import { addParticipant } from "./helpers";
 import { test, expect } from "@playwright/test";
 import { pointerReorder, keyboardReorder, configuration, details, english, saved } from "./helpers";
 
 test("speaker pointer dragging and reset work alongside keyboard controls", async ({ page }) => {
   await english(page);
   await details(page);
-  await page.getByRole("button", { name: "Add participant", exact: true }).click();
-  await page.getByLabel("Email 2", { exact: true }).fill("max@example.com");
+  await addParticipant(page, "max@example.com");
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Product Launch Decision", exact: true }).click();
   await page.getByRole("button", { name: "Continue", exact: true }).click();

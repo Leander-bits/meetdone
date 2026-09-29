@@ -1,3 +1,4 @@
+import { addParticipant } from "./helpers";
 import { test, expect } from "@playwright/test";
 import { translate } from "../lib/i18n";
 
@@ -17,13 +18,14 @@ for (const locale of ["zh", "en"] as const) {
     await expect(dialog.locator("ol li").first()).toHaveAttribute("aria-current", "step");
     await expect(dialog.getByRole("button", { name: t("Continue"), exact: true })).toBeDisabled();
     await page.getByLabel(t("Meeting name"), { exact: true }).fill("User content 用户内容");
-    await page.getByLabel(`${t("Email")} 1`, { exact: true }).fill("devi@example.com");
-    await expect(page.getByLabel(`${t("Display name")} 1`, { exact: true })).toHaveValue("devi");
-    await page.getByLabel(`${t("Display name")} 1`, { exact: true }).fill("Devi Custom");
-    await page.getByLabel(`${t("Email")} 1`, { exact: true }).fill("devi.new@example.com");
-    await expect(page.getByLabel(`${t("Display name")} 1`, { exact: true })).toHaveValue(
-      "Devi Custom",
-    );
+    await addParticipant(page, "devi@example.com", locale);
+    await page
+      .getByRole("button", { name: `${t("Edit participant")}: devi@example.com`, exact: true })
+      .click();
+    await expect(page.getByLabel(t("Display name"), { exact: true })).toHaveValue("devi");
+    await page.getByLabel(t("Display name"), { exact: true }).fill("Devi Custom");
+    await addParticipant(page, "devi.new@example.com", locale);
+    await expect(page.getByLabel(t("Display name"), { exact: true })).toHaveValue("Devi Custom");
     await dialog
       .getByRole("button", { name: locale === "zh" ? "EN" : "中文", exact: true })
       .click();
@@ -31,7 +33,7 @@ for (const locale of ["zh", "en"] as const) {
     await expect(page.getByLabel(other("Meeting name"), { exact: true })).toHaveValue(
       "User content 用户内容",
     );
-    await expect(page.getByLabel(`${other("Display name")} 1`, { exact: true })).toHaveValue(
+    await expect(page.getByLabel(other("Display name"), { exact: true })).toHaveValue(
       "Devi Custom",
     );
     await dialog
