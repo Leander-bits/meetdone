@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Trash2, X, CalendarDays } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock3, Plus, Trash2, X, CalendarDays } from "lucide-react";
 import { MeetingTemplate, Participant, Requirement, MeetingStructure } from "@/lib/models";
 import { templates } from "@/lib/templates";
 import { blankTemplate, isBuiltinTemplate } from "@/lib/custom-templates";
@@ -16,6 +16,7 @@ import {
   validSchedule,
   timezoneOffset,
 } from "@/lib/meeting-structure";
+import { BasicInformationHeader } from "./basic-information-header";
 import { MeetingRulesEditor } from "./meeting-rules-editor";
 import { StructureEditor, MeetingGoalsEditor } from "./structure-editor";
 import { useI18n } from "./language-provider";
@@ -103,33 +104,41 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
       >
         <div className="flex h-full flex-col" onChangeCapture={() => setDirty(true)}>
           <DialogHeader className="border-b px-4 py-4 sm:px-6 lg:px-8">
-            <div className="flex w-full items-center justify-between">
-              <DialogTitle>
-                {tx("Create Meeting")}{" "}
-                <span className="ml-3 text-xs font-normal text-muted-foreground">{page} / 3</span>
-              </DialogTitle>
-              <Button variant="ghost" size="icon" aria-label={tx("Close")} onClick={close}>
-                <X size={18} />
-              </Button>
-            </div>
+            {page === 1 ? (
+              <BasicInformationHeader onClose={close} />
+            ) : (
+              <div className="flex w-full items-center justify-between">
+                <DialogTitle>
+                  {tx("Create Meeting")}{" "}
+                  <span className="ml-3 text-xs font-normal text-muted-foreground">{page} / 3</span>
+                </DialogTitle>
+                <Button variant="ghost" size="icon" aria-label={tx("Close")} onClick={close}>
+                  <X size={18} />
+                </Button>
+              </div>
+            )}
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-7 sm:px-6 lg:px-8">
-            <div key={page} className="flow-enter w-full min-w-0 space-y-7">
+            <div
+              key={page}
+              className={`flow-enter w-full min-w-0 space-y-7 ${page === 1 ? "mx-auto max-w-4xl sm:py-5" : ""}`}
+            >
               {page === 1 && (
                 <>
-                  <h2 className="text-2xl font-semibold">{tx("Meeting details")}</h2>
+                  <h2 className="text-2xl font-semibold">{tx("Basic Information")}</h2>
                   <label className="block">
                     <span className="field-label">{tx("Meeting name")}</span>
                     <Input
                       autoFocus
                       required
+                      placeholder={tx("e.g. Product strategy review")}
                       maxLength={140}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                     />
                   </label>
                   <fieldset className="space-y-3">
-                    <legend className="field-label">{tx("Meeting Time")}</legend>
+                    <legend className="sr-only">{tx("Meeting Time")}</legend>
                     <div className="grid gap-3 sm:grid-cols-3">
                       <label>
                         <span className="field-label flex items-center gap-1">
@@ -144,7 +153,10 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                         />
                       </label>
                       <label>
-                        <span className="field-label">{tx("Start time")}</span>
+                        <span className="field-label flex items-center gap-1">
+                          <Clock3 size={14} />
+                          {tx("Start time")}
+                        </span>
                         <Input
                           aria-invalid={!!timeError}
                           aria-describedby={timeError ? "meeting-time-error" : undefined}
@@ -159,7 +171,10 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                         />
                       </label>
                       <label>
-                        <span className="field-label">{tx("End time")}</span>
+                        <span className="field-label flex items-center gap-1">
+                          <Clock3 size={14} />
+                          {tx("End time")}
+                        </span>
                         <Input
                           aria-invalid={!!timeError}
                           aria-describedby={timeError ? "meeting-time-error" : undefined}
@@ -179,7 +194,7 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                         {tx(timeError)}
                       </p>
                     )}
-                    <label className="block max-w-sm">
+                    <label className="block pt-3">
                       <span className="field-label">{tx("Timezone")}</span>
                       <select
                         aria-label={tx("Timezone")}
@@ -200,7 +215,7 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                   </fieldset>
                   <fieldset>
                     <legend className="mb-3 text-sm font-semibold">{tx("Participants")}</legend>
-                    <div className="space-y-3">
+                    <div className="space-y-3 rounded-xl border bg-card p-3 sm:p-4">
                       {participants.map((p, i) => (
                         <div key={p.id} className="flex items-end gap-2">
                           <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
@@ -385,11 +400,15 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           <footer className="border-t bg-white px-4 py-4 sm:px-6 lg:px-8">
-            <div className="flex w-full justify-between gap-3">
-              <Button variant="ghost" onClick={() => (page === 1 ? close() : setPage(page - 1))}>
-                <ArrowLeft size={16} />
-                {tx(page === 1 ? "Back to Home" : "Back")}
-              </Button>
+            <div
+              className={`flex w-full gap-3 ${page === 1 ? "mx-auto max-w-4xl justify-end" : "justify-between"}`}
+            >
+              {page !== 1 && (
+                <Button variant="ghost" onClick={() => (page === 1 ? close() : setPage(page - 1))}>
+                  <ArrowLeft size={16} />
+                  {tx(page === 1 ? "Back to Home" : "Back")}
+                </Button>
+              )}
               <Button
                 disabled={page === 1 ? !pageOneValid : page === 2 ? !selected : !valid}
                 onClick={() => {
@@ -400,6 +419,7 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                 }}
               >
                 {tx(page === 3 ? "Create Meeting" : "Continue")}
+                {page === 1 && <ArrowRight size={16} />}
               </Button>
             </div>
           </footer>

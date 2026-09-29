@@ -1,6 +1,11 @@
 export type Locale = "zh" | "en";
 export const LANGUAGE_KEY = "meetdone.language";
 export const zh: Record<string, string> = {
+  "Basic Information": "基本信息",
+  "Meeting Template": "会议模板",
+  "Goals and Structure": "目标与结构",
+  "Meeting creation steps": "创建会议步骤",
+  "e.g. Product strategy review": "例如：产品战略评审",
   "Must speak": "必须发言",
   "Add Goal": "添加目标",
   Goals: "目标",
