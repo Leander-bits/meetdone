@@ -73,8 +73,8 @@ export function ProductInfo() {
           </li>
           <li>
             {text(
-              "Mock 仅指示例内容。真实分析需要服务器配置 DeepSeek；调用失败会显示错误，不生成虚假结果。请先脱敏敏感记录，提交的目标、发言者和记录会发送给分析服务。",
-              "Mock refers only to sample content. Real analysis requires server-side DeepSeek configuration. Failures show an error without fabricated results. Remove sensitive information before submitting goals, participants and transcripts to the analysis service.",
+              "Mock 仅指示例内容。真实分析需要服务器配置 DeepSeek；调用失败会显示错误（如果失败请再次尝试），不生成虚假结果。请先脱敏敏感记录，提交的目标、发言者和记录会发送给分析服务。",
+              "Mock refers only to sample content. Real analysis requires server-side DeepSeek configuration. Failures show an error (if failed, please try again) without fabricated results. Remove sensitive information before submitting goals, participants and transcripts to the analysis service.",
             )}
           </li>
           <li>
