@@ -77,7 +77,7 @@ export class DeepSeekAnalysisProvider
 
           temperature: 0,
 
-          max_tokens: 20000,
+          max_tokens: 15000,
 
           response_format: {
             type: "json_object",
