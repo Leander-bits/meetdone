@@ -4,7 +4,13 @@ import { useI18n } from "./language-provider";
 import { Button } from "./ui/button";
 import { DialogTitle } from "./ui/dialog";
 
-export function BasicInformationHeader({ onClose }: { onClose: () => void }) {
+export function BasicInformationHeader({
+  onClose,
+  step = 1,
+}: {
+  onClose: () => void;
+  step?: 1 | 2;
+}) {
   const { t, locale, setLocale } = useI18n();
   return (
     <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-left md:grid-cols-[1fr_auto_1fr]">
@@ -20,12 +26,12 @@ export function BasicInformationHeader({ onClose }: { onClose: () => void }) {
         {["Basic Information", "Meeting Template", "Goals and Structure"].map((label, index) => (
           <li
             key={label}
-            aria-current={index === 0 ? "step" : undefined}
-            className={`flex min-w-0 items-center gap-2 text-xs ${index === 0 ? "font-semibold text-foreground" : "text-muted-foreground"}`}
+            aria-current={index + 1 === step ? "step" : undefined}
+            className={`flex min-w-0 items-center gap-2 text-xs ${index + 1 === step ? "font-semibold text-foreground" : "text-muted-foreground"}`}
           >
             {index > 0 && <span aria-hidden="true" className="h-px w-3 bg-border sm:w-6" />}
             <span
-              className={`flex size-6 shrink-0 items-center justify-center rounded-full ${index === 0 ? "bg-foreground text-white" : "bg-muted"}`}
+              className={`flex size-6 shrink-0 items-center justify-center rounded-full ${index + 1 === step ? "bg-foreground text-white" : "bg-muted"}`}
             >
               {index + 1}
             </span>

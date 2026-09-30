@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Plus, Trash2, X, CalendarDays } from "lucide-react";
+import { ArrowLeft, ArrowRight, X, CalendarDays } from "lucide-react";
 import { MeetingTemplate, Participant, Requirement, MeetingStructure } from "@/lib/models";
 import { templates } from "@/lib/templates";
 import { blankTemplate, isBuiltinTemplate } from "@/lib/custom-templates";
@@ -17,6 +17,7 @@ import {
 } from "@/lib/meeting-structure";
 import { MeetingTimePicker } from "./meeting-time-picker";
 import { ParticipantInput } from "./participant-input";
+import { TemplateSelection } from "./template-selection";
 import { BasicInformationHeader } from "./basic-information-header";
 import { MeetingRulesEditor } from "./meeting-rules-editor";
 import { StructureEditor, MeetingGoalsEditor } from "./structure-editor";
@@ -103,8 +104,8 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
       >
         <div className="flex h-full flex-col" onChangeCapture={() => setDirty(true)}>
           <DialogHeader className="border-b px-4 py-4 sm:px-6 lg:px-8">
-            {page === 1 ? (
-              <BasicInformationHeader onClose={close} />
+            {page <= 2 ? (
+              <BasicInformationHeader onClose={close} step={page as 1 | 2} />
             ) : (
               <div className="flex w-full items-center justify-between">
                 <DialogTitle>
@@ -120,7 +121,7 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-7 sm:px-6 lg:px-8">
             <div
               key={page}
-              className={`flow-enter w-full min-w-0 space-y-7 ${page === 1 ? "mx-auto max-w-4xl sm:py-5" : ""}`}
+              className={`flow-enter w-full min-w-0 space-y-7 ${page <= 2 ? "mx-auto max-w-4xl sm:py-5" : ""}`}
             >
               {page === 1 && (
                 <>
@@ -214,46 +215,16 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                 </>
               )}
               {page === 2 && (
-                <>
-                  <h2 className="text-2xl font-semibold">{tx("Choose a template")}</h2>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {[...templates, ...customTemplates].map((template) => (
-                      <div
-                        key={template.id}
-                        className={`relative rounded-xl border-2 transition-colors ${selected?.id === template.id ? "border-primary bg-primary/5" : "border-transparent bg-white"}`}
-                      >
-                        <button
-                          className="min-h-32 w-full p-6 text-left text-base font-medium"
-                          aria-pressed={selected?.id === template.id}
-                          onClick={() => choose(template)}
-                        >
-                          {isBuiltinTemplate(template.id) ? tx(template.name) : template.name}
-                        </button>
-                        {!isBuiltinTemplate(template.id) && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-2 top-2"
-                            aria-label={`${tx("Delete Custom Template")}: ${template.name}`}
-                            onClick={() => setDeleting(template)}
-                          >
-                            <Trash2 size={14} />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      className={`min-h-32 rounded-xl border-2 border-dashed p-6 text-left font-medium ${selected && ![...templates, ...customTemplates].some((t) => t.id === selected.id) ? "border-primary bg-primary/5" : "border-muted-foreground/30"}`}
-                      onClick={() => {
-                        choose(blankTemplate());
-                        setStructure(null);
-                      }}
-                    >
-                      <Plus className="mb-3" size={22} />
-                      {tx("Create New Template")}
-                    </button>
-                  </div>
-                </>
+                <TemplateSelection
+                  templates={[...templates, ...customTemplates]}
+                  selected={selected}
+                  onSelect={choose}
+                  onDelete={setDeleting}
+                  onCreate={() => {
+                    choose(blankTemplate());
+                    setStructure(null);
+                  }}
+                />
               )}
               {page === 3 && selected && (
                 <>
@@ -328,10 +299,13 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
           </div>
           <footer className="border-t bg-white px-4 py-4 sm:px-6 lg:px-8">
             <div
-              className={`flex w-full gap-3 ${page === 1 ? "mx-auto max-w-4xl justify-end" : "justify-between"}`}
+              className={`flex w-full gap-3 ${page === 1 ? "mx-auto max-w-4xl justify-end" : page === 2 ? "mx-auto max-w-4xl justify-between" : "justify-between"}`}
             >
               {page !== 1 && (
-                <Button variant="ghost" onClick={() => (page === 1 ? close() : setPage(page - 1))}>
+                <Button
+                  variant={page === 2 ? "outline" : "ghost"}
+                  onClick={() => (page === 1 ? close() : setPage(page - 1))}
+                >
                   <ArrowLeft size={16} />
                   {tx(page === 1 ? "Back to Home" : "Back")}
                 </Button>
@@ -346,7 +320,7 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                 }}
               >
                 {tx(page === 3 ? "Create Meeting" : "Continue")}
-                {page === 1 && <ArrowRight size={16} />}
+                {page <= 2 && <ArrowRight size={16} />}
               </Button>
             </div>
           </footer>
