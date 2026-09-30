@@ -102,6 +102,9 @@
   transform: rotate(90deg);
 }
 @container speakers (min-width: 440px) {
+  .speaker-sequence .speaker-arrow {
+    top: 68px;
+  }
   .speaker-flow {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

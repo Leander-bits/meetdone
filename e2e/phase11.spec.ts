@@ -117,9 +117,13 @@ for (const locale of ["zh", "en"] as const) {
       t("Add Goal"),
     );
     await page.getByRole("button", { name: t("Speaker Sequence"), exact: true }).click();
-    await expect(page.locator("[data-speaker-node]").first()).toHaveAttribute("class", style!);
+    await expect(page.locator("[data-speaker-node]").first()).toHaveClass(
+      /speaker-node.*rounded-full/,
+    );
+    await expect(page.locator(".speaker-sequence")).toHaveCount(1);
     await page.getByRole("button", { name: t("Stage × Speaker Matrix"), exact: true }).click();
     await expect(stage.locator("[data-speaker-node]")).toHaveCount(4);
+    await expect(stage.locator("[data-speaker-node]").first()).toHaveAttribute("class", style!);
     for (const width of [1440, 1280, 768, 390]) {
       await page.setViewportSize({ width, height: 900 });
       await stage.getByRole("checkbox").first().scrollIntoViewIfNeeded();

@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Clock3, Users, ListOrdered, Grid2X2, Plus, Trash2 } from "lucide-react";
+import { Clock3, Users, ListOrdered, Grid2X2, Plus, Trash2, Check } from "lucide-react";
 import {
   GoalInput,
   MeetingStructure,
@@ -22,6 +22,7 @@ import {
 import { useI18n } from "./language-provider";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
 import { SortableList, SortableRow } from "./sortable";
 import { SpeakerFlow } from "./speaker-flow";
 import { ItemNumber } from "./requirement-controls";
@@ -29,19 +30,34 @@ import { ItemNumber } from "./requirement-controls";
 export function MeetingGoalsEditor({
   goals,
   onChange,
+  creationLayout = false,
 }: {
   goals: Requirement[];
   onChange: (goals: Requirement[]) => void;
+  creationLayout?: boolean;
 }) {
   const { t: tx, label } = useI18n();
+  const GoalField = creationLayout ? Textarea : Input;
   return (
-    <section>
+    <section className={creationLayout ? "mx-auto w-full max-w-4xl" : undefined}>
       <h2 className="mb-3 text-lg font-semibold">{tx("Meeting Goals")}</h2>
       <div className="space-y-2">
         {goals.map((g, i) => (
-          <div key={g.id} className="flex gap-2">
+          <div
+            key={g.id}
+            className={
+              creationLayout
+                ? "grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 sm:grid-cols-[auto_minmax(0,1fr)_8rem_auto]"
+                : "flex gap-2"
+            }
+          >
             <ItemNumber index={i} />
-            <Input
+            <GoalField
+              className={
+                creationLayout
+                  ? "col-span-2 min-h-24 resize-y rounded-xl bg-card px-4 py-3 sm:col-span-1"
+                  : undefined
+              }
               aria-label={`${tx("Goal")} ${i + 1}`}
               value={label(g)}
               maxLength={500}
@@ -55,7 +71,7 @@ export function MeetingGoalsEditor({
             />
             <select
               aria-label={`${tx("Requirement level")} ${i + 1}`}
-              className="native-select !w-32 shrink-0"
+              className={`native-select !w-32 shrink-0 ${creationLayout ? "col-start-2 sm:col-start-auto" : ""}`}
               value={g.level}
               onChange={(e) =>
                 onChange(
@@ -180,6 +196,7 @@ export function StructureEditor({
   onParticipantsChange,
   duration,
   template,
+  creationLayout = false,
 }: {
   structure: MeetingStructure | null;
   onChange: (s: MeetingStructure) => void;
@@ -187,6 +204,7 @@ export function StructureEditor({
   onParticipantsChange: (p: Participant[]) => void;
   duration: number;
   template?: MeetingTemplate;
+  creationLayout?: boolean;
 }) {
   const { t: tx } = useI18n();
   const icons = { time: Clock3, speaker: Users, stages: ListOrdered, matrix: Grid2X2 };
@@ -217,8 +235,17 @@ export function StructureEditor({
   };
   return (
     <section className="space-y-5">
-      <h2 className="text-lg font-semibold">{tx("Meeting Structure")}</h2>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <h2 className={`text-lg font-semibold ${creationLayout ? "mx-auto w-full max-w-4xl" : ""}`}>
+        {tx("Meeting Structure")}
+      </h2>
+      <div
+        className={
+          creationLayout
+            ? "mx-auto grid w-full max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2"
+            : "grid grid-cols-2 gap-3 sm:grid-cols-4"
+        }
+        data-structure-selector
+      >
         {structureTypes.map((type) => {
           const Icon = icons[type];
           return (
@@ -230,23 +257,37 @@ export function StructureEditor({
                   s ? { ...s, type } : initialStructure(type, duration, participants, template),
                 )
               }
-              className={`flex min-h-28 flex-col items-center justify-center gap-3 rounded-xl border-2 px-3 py-4 text-center text-sm font-medium transition-colors ${s?.type === type ? "border-primary bg-primary/5 text-primary" : "border-transparent bg-white hover:border-border"}`}
+              className={`${creationLayout ? "relative flex min-h-20 items-center gap-3 px-5 py-4 pr-10 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" : "flex min-h-28 flex-col items-center justify-center gap-3 px-3 py-4 text-center"} rounded-xl border-2 text-sm font-medium transition-colors ${s?.type === type ? "border-primary bg-primary/5 text-primary" : creationLayout ? "border-border bg-card hover:border-primary/50" : "border-transparent bg-white hover:border-border"}`}
             >
-              <Icon size={27} strokeWidth={1.5} />
+              <Icon
+                size={creationLayout ? 22 : 27}
+                strokeWidth={1.5}
+                className="shrink-0"
+                aria-hidden="true"
+              />
               {tx(structureNames[type])}
+              {creationLayout && s?.type === type && (
+                <Check size={16} aria-hidden="true" className="absolute right-4" />
+              )}
             </button>
           );
         })}
       </div>
       {s?.type === "time" && (
-        <div className="flow-enter space-y-3" data-structure-editor="time">
-          <div className="flex justify-between text-sm">
-            <span>{tx("Timeline")}</span>
-            <span>
+        <div
+          className="flow-enter space-y-4 rounded-xl border bg-muted/30 p-4 sm:p-5"
+          data-structure-editor="time"
+        >
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="flex items-center gap-2 font-medium">
+              <Clock3 size={16} />
+              {tx("Timeline")}
+            </span>
+            <span className="shrink-0 tabular-nums text-muted-foreground">
               {duration} {tx("minutes")}
             </span>
           </div>
-          <div className="flex h-12 gap-0.5 overflow-hidden rounded-md" aria-label={tx("Timeline")}>
+          <div className="flex h-10 gap-0.5 overflow-hidden rounded-lg" aria-label={tx("Timeline")}>
             {s.segments.map((seg, i) => (
               <div
                 key={seg.id}
@@ -260,90 +301,100 @@ export function StructureEditor({
               </div>
             ))}
           </div>
-          <SortableList
-            ids={s.segments.map((seg) => `segments/${seg.id}`)}
-            onMove={(from, to) => onChange({ ...s, segments: moveItem(s.segments, from, to) })}
+          <div
+            className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3"
+            data-timeline-cards
           >
-            {s.segments.map((seg, i) => (
-              <SortableRow key={seg.id} id={`segments/${seg.id}`} index={i}>
-                <div className="flex flex-wrap items-center gap-3">
-                  <Input
-                    className="max-w-56"
-                    aria-label={`${tx("Segment")} ${i + 1}`}
-                    value={seg.builtinKey === seg.name ? tx(seg.name) : seg.name}
-                    onChange={(e) =>
+            <SortableList
+              ids={s.segments.map((seg) => `segments/${seg.id}`)}
+              onMove={(from, to) => onChange({ ...s, segments: moveItem(s.segments, from, to) })}
+            >
+              {s.segments.map((seg, i) => (
+                <SortableRow key={seg.id} id={`segments/${seg.id}`} index={i} card>
+                  <div className="space-y-3">
+                    <Input
+                      className="font-semibold"
+                      aria-label={`${tx("Segment")} ${i + 1}`}
+                      value={seg.builtinKey === seg.name ? tx(seg.name) : seg.name}
+                      onChange={(e) =>
+                        onChange({
+                          ...s,
+                          segments: s.segments.map((x) =>
+                            x.id === seg.id
+                              ? { ...x, name: e.target.value, builtinKey: undefined }
+                              : x,
+                          ),
+                        })
+                      }
+                    />
+                    <span className="flex items-center gap-1.5 text-sm tabular-nums text-muted-foreground">
+                      <Clock3 size={14} aria-hidden="true" />
+                      {seg.minutes} {tx("minutes")}
+                    </span>
+                    <input
+                      className="block h-5 w-full cursor-ew-resize accent-primary focus-visible:outline-2 focus-visible:outline-primary"
+                      aria-label={`${tx("Duration")} ${i + 1}`}
+                      type="range"
+                      min={5}
+                      max={duration - (s.segments.length - 1) * 5}
+                      step={5}
+                      value={seg.minutes}
+                      onChange={(e) =>
+                        onChange({
+                          ...s,
+                          segments: resizeSegment(s.segments, seg.id, Number(e.target.value)),
+                        })
+                      }
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-3 top-4"
+                      disabled={s.segments.length === 1}
+                      aria-label={`${tx("Remove segment")} ${i + 1}`}
+                      onClick={() =>
+                        onChange({ ...s, segments: removeSegment(s.segments, seg.id) })
+                      }
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
+                  <StructureGoals
+                    goals={seg.goals}
+                    onChange={(goals) =>
                       onChange({
                         ...s,
-                        segments: s.segments.map((x) =>
-                          x.id === seg.id
-                            ? { ...x, name: e.target.value, builtinKey: undefined }
-                            : x,
-                        ),
+                        segments: s.segments.map((x) => (x.id === seg.id ? { ...x, goals } : x)),
                       })
                     }
                   />
-                  <span className="text-sm tabular-nums">
-                    {seg.minutes} {tx("minutes")}
-                  </span>
-                  <input
-                    className="min-w-24 flex-1 accent-primary"
-                    aria-label={`${tx("Duration")} ${i + 1}`}
-                    type="range"
-                    min={5}
-                    max={duration - (s.segments.length - 1) * 5}
-                    step={5}
-                    value={seg.minutes}
-                    onChange={(e) =>
-                      onChange({
-                        ...s,
-                        segments: resizeSegment(s.segments, seg.id, Number(e.target.value)),
-                      })
-                    }
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    disabled={s.segments.length === 1}
-                    aria-label={`${tx("Remove segment")} ${i + 1}`}
-                    onClick={() => onChange({ ...s, segments: removeSegment(s.segments, seg.id) })}
-                  >
-                    <Trash2 size={14} />
-                  </Button>
-                </div>
-                <StructureGoals
-                  goals={seg.goals}
-                  onChange={(goals) =>
-                    onChange({
-                      ...s,
-                      segments: s.segments.map((x) => (x.id === seg.id ? { ...x, goals } : x)),
-                    })
-                  }
-                />
-              </SortableRow>
-            ))}
-          </SortableList>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={!s.segments.some((x) => x.minutes >= 10)}
-            onClick={() =>
-              onChange({
-                ...s,
-                segments: addSegment(s.segments, tx("New segment"), crypto.randomUUID()),
-              })
-            }
-          >
-            <Plus size={14} />
-            {tx("Add segment")}
-          </Button>
+                </SortableRow>
+              ))}
+            </SortableList>
+            <Button
+              variant="outline"
+              className="h-auto min-h-36 w-full flex-col gap-2 rounded-xl border-2 border-dashed bg-transparent text-primary hover:border-primary/60"
+              disabled={!s.segments.some((x) => x.minutes >= 10)}
+              onClick={() =>
+                onChange({
+                  ...s,
+                  segments: addSegment(s.segments, tx("New segment"), crypto.randomUUID()),
+                })
+              }
+            >
+              <Plus size={14} />
+              {tx("Add segment")}
+            </Button>
+          </div>
         </div>
       )}
       {s?.type === "speaker" && (
         <div
-          className="flow-enter speaker-flow-container space-y-3"
+          className="flow-enter speaker-flow-container space-y-4 rounded-xl border bg-muted/30 p-4 sm:p-5"
           data-structure-editor="speaker"
         >
           <SpeakerFlow
+            sequence
             group="speakers"
             assignments={s.speakerOrder.map((id) => ({
               participantId: id,

@@ -48,7 +48,7 @@ test("timeline resizing, adding and keyboard reordering preserve full duration",
     page,
     page.locator('[data-sortable^="segments/"]').nth(5),
     page.locator('[data-sortable^="segments/"]').nth(4),
-    "ArrowUp",
+    "ArrowLeft",
   );
   await expect(page.getByRole("textbox", { name: "Segment 5", exact: true })).toHaveValue("Q&A");
   await page.locator("[data-sortable]").first().getByText("Goals", { exact: true }).click();

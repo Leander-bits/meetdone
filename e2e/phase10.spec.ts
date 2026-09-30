@@ -179,6 +179,23 @@ for (const locale of ["en", "zh"] as const) {
       }));
     expect(circle.width).toBe(circle.height);
     expect(parseFloat(circle.radius)).toBeGreaterThan(40);
+    await expect(page.locator(".speaker-sequence")).toHaveCount(1);
+    const requiredNode = rows.nth(1).locator("[data-speaker-node]");
+    await expect(requiredNode).toHaveClass(/text-primary-foreground/);
+    await rows.nth(1).getByRole("checkbox").uncheck();
+    await expect(requiredNode).not.toHaveClass(/text-primary-foreground/);
+    await rows.nth(1).getByRole("checkbox").check();
+    for (const width of [1440, 768, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await rows.first().scrollIntoViewIfNeeded();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
+      await page.screenshot({
+        path: info.outputPath(`speaker-sequence-${locale}-${width}.png`),
+        fullPage: true,
+      });
+    }
     await page.getByRole("button", { name: t("Time Sequence"), exact: true }).click();
     const row = page.locator('[data-sortable^="segments/"]').first();
     await expect(row.getByText(t("Goals"), { exact: true })).toBeVisible();

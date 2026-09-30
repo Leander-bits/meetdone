@@ -9,7 +9,7 @@ export function BasicInformationHeader({
   step = 1,
 }: {
   onClose: () => void;
-  step?: 1 | 2;
+  step?: 1 | 2 | 3;
 }) {
   const { t, locale, setLocale } = useI18n();
   return (

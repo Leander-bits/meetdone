@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, X, CalendarDays } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarDays } from "lucide-react";
 import { MeetingTemplate, Participant, Requirement, MeetingStructure } from "@/lib/models";
 import { templates } from "@/lib/templates";
 import { blankTemplate, isBuiltinTemplate } from "@/lib/custom-templates";
@@ -104,19 +104,7 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
       >
         <div className="flex h-full flex-col" onChangeCapture={() => setDirty(true)}>
           <DialogHeader className="border-b px-4 py-4 sm:px-6 lg:px-8">
-            {page <= 2 ? (
-              <BasicInformationHeader onClose={close} step={page as 1 | 2} />
-            ) : (
-              <div className="flex w-full items-center justify-between">
-                <DialogTitle>
-                  {tx("Create Meeting")}{" "}
-                  <span className="ml-3 text-xs font-normal text-muted-foreground">{page} / 3</span>
-                </DialogTitle>
-                <Button variant="ghost" size="icon" aria-label={tx("Close")} onClick={close}>
-                  <X size={18} />
-                </Button>
-              </div>
-            )}
+            <BasicInformationHeader onClose={close} step={page as 1 | 2 | 3} />
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-7 sm:px-6 lg:px-8">
             <div
@@ -228,8 +216,12 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
               )}
               {page === 3 && selected && (
                 <>
-                  <MeetingGoalsEditor goals={goals} onChange={setGoals} />
+                  <h2 className="mx-auto w-full max-w-4xl text-2xl font-semibold sm:pt-5">
+                    {tx("Goals and Structure")}
+                  </h2>
+                  <MeetingGoalsEditor creationLayout goals={goals} onChange={setGoals} />
                   <StructureEditor
+                    creationLayout
                     structure={structure}
                     onChange={setStructure}
                     participants={participants}
@@ -299,11 +291,11 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
           </div>
           <footer className="border-t bg-white px-4 py-4 sm:px-6 lg:px-8">
             <div
-              className={`flex w-full gap-3 ${page === 1 ? "mx-auto max-w-4xl justify-end" : page === 2 ? "mx-auto max-w-4xl justify-between" : "justify-between"}`}
+              className={`flex w-full gap-3 ${page === 1 ? "mx-auto max-w-4xl justify-end" : "mx-auto max-w-4xl justify-between"}`}
             >
               {page !== 1 && (
                 <Button
-                  variant={page === 2 ? "outline" : "ghost"}
+                  variant="outline"
                   onClick={() => (page === 1 ? close() : setPage(page - 1))}
                 >
                   <ArrowLeft size={16} />

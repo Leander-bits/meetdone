@@ -1,5 +1,5 @@
 "use client";
-import { ArrowRight, Trash2 } from "lucide-react";
+import { ArrowRight, Star, Trash2 } from "lucide-react";
 import { Participant, Stage } from "@/lib/models";
 import { useI18n } from "./language-provider";
 import { SortableList, SortableRow } from "./sortable";
@@ -14,6 +14,7 @@ export function SpeakerFlow({
   onRequiredChange,
   onMove,
   onRemove,
+  sequence = false,
 }: {
   group: string;
   assignments: Stage["assignments"];
@@ -22,10 +23,14 @@ export function SpeakerFlow({
   onRequiredChange: (id: string, required: boolean) => void;
   onMove: (from: number, to: number) => void;
   onRemove?: (id: string) => void;
+  sequence?: boolean;
 }) {
   const { t: tx, locale } = useI18n();
   return (
-    <div className="speaker-flow-container" data-speaker-flow-group={group}>
+    <div
+      className={`speaker-flow-container ${sequence ? "speaker-sequence" : ""}`}
+      data-speaker-flow-group={group}
+    >
       <SortableList ids={assignments.map((a) => `${group}/${a.participantId}`)} onMove={onMove}>
         <div className="speaker-flow" data-speaker-flow>
           {assignments.map((assignment, i) => {
@@ -35,7 +40,7 @@ export function SpeakerFlow({
               p && (
                 <SortableRow key={id} id={`${group}/${id}`} index={i} flow>
                   <div
-                    className={`speaker-node mx-auto flex h-24 w-24 items-center justify-center rounded-full border-2 p-2 text-center text-sm font-medium break-words ${assignment.required ? "border-primary/60 bg-primary/5" : "border-border bg-white"}`}
+                    className={`speaker-node mx-auto flex items-center justify-center rounded-full border-2 p-2 text-center text-sm font-medium break-words transition-colors ${sequence ? "h-20 w-20" : "h-24 w-24"} ${assignment.required ? (sequence ? "border-primary bg-primary text-primary-foreground" : "border-primary/60 bg-primary/5") : "border-border bg-white"}`}
                     data-speaker-node
                     title={p.name}
                   >
@@ -51,10 +56,12 @@ export function SpeakerFlow({
                       size={18}
                     />
                   )}
-                  <div className="mx-auto mt-3 flex w-36 max-w-full flex-col gap-2">
+                  <div
+                    className={`mx-auto mt-3 flex max-w-full flex-col gap-2 ${sequence ? "w-32" : "w-36"}`}
+                  >
                     <select
                       aria-label={`${tx("Role")}: ${p.name}`}
-                      className="native-select !text-xs"
+                      className={`native-select !text-xs ${sequence ? "!rounded-lg !bg-card" : ""}`}
                       value={p.role}
                       onChange={(e) =>
                         onParticipantsChange(
@@ -77,14 +84,25 @@ export function SpeakerFlow({
                       ))}
                     </select>
                     <label
-                      className={`flex items-center justify-center gap-2 rounded px-2 py-1 text-xs ${assignment.required ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}
+                      className={`flex cursor-pointer items-center justify-center gap-2 px-2 py-1 text-xs ${sequence ? "relative min-h-8 rounded-full border focus-within:ring-2 focus-within:ring-ring" : "rounded"} ${assignment.required ? `${sequence ? "border-primary/40" : ""} bg-primary/10 text-primary` : `${sequence ? "border-border bg-card" : ""} text-muted-foreground`}`}
                     >
                       <input
                         type="checkbox"
-                        className="accent-primary"
+                        className={
+                          sequence
+                            ? "absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                            : "accent-primary"
+                        }
                         checked={assignment.required}
                         onChange={(e) => onRequiredChange(id, e.target.checked)}
                       />
+                      {sequence && (
+                        <Star
+                          size={12}
+                          aria-hidden="true"
+                          className={assignment.required ? "fill-primary" : ""}
+                        />
+                      )}
                       {locale === "zh" ? tx("Must speak") : tx("Required")}
                     </label>
                   </div>
