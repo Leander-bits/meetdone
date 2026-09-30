@@ -126,13 +126,15 @@ export function MeetingGoalsEditor({
 function StructureGoals({
   goals,
   onChange,
+  light = false,
 }: {
   goals: GoalInput[];
   onChange: (goals: GoalInput[]) => void;
+  light?: boolean;
 }) {
   const { t: tx } = useI18n();
   return (
-    <div className="mt-3">
+    <div className={light ? "mt-2" : "mt-3"}>
       <p className="text-xs text-muted-foreground">
         {tx("Goals")}{" "}
         {goals.filter((g) => g.text.trim()).length > 0 &&
@@ -151,7 +153,7 @@ function StructureGoals({
                   "e.g. Decide whether to release",
                 ][i % 3],
               )}
-              className="placeholder:text-muted-foreground/60"
+              className={`placeholder:text-muted-foreground/60 ${light ? "border-transparent bg-transparent shadow-none hover:border-input focus-visible:border-ring" : ""}`}
               maxLength={500}
               value={g.builtinKey === g.text ? tx(g.text) : g.text}
               onChange={(e) =>
@@ -424,7 +426,10 @@ export function StructureEditor({
         </div>
       )}
       {(s?.type === "stages" || s?.type === "matrix") && (
-        <div className="flow-enter space-y-3" data-structure-editor={s.type}>
+        <div
+          className={`flow-enter space-y-3 ${s.type === "stages" ? "rounded-xl border bg-muted/30 p-3 sm:p-5" : ""}`}
+          data-structure-editor={s.type}
+        >
           {s.type === "matrix" && (
             <>
               <p className="text-xs font-medium text-muted-foreground">{tx("Participants")}</p>
@@ -457,6 +462,7 @@ export function StructureEditor({
                 id={`stages/${stage.id}`}
                 index={i}
                 section={s.type === "matrix"}
+                stage={s.type === "stages"}
               >
                 <div
                   onDragOver={(e) => {
@@ -474,9 +480,19 @@ export function StructureEditor({
                   className="min-h-12"
                   data-matrix-stage={s.type === "matrix" ? stage.id : undefined}
                 >
-                  <div className="flex gap-2">
+                  <div
+                    className={
+                      s.type === "matrix"
+                        ? "mb-3 flex gap-2 rounded-lg bg-muted/50 p-2"
+                        : "flex gap-2"
+                    }
+                  >
                     <Input
-                      className={s.type === "matrix" ? "!text-base font-semibold" : undefined}
+                      className={
+                        s.type === "matrix"
+                          ? "border-transparent bg-transparent !text-base font-semibold shadow-none hover:border-input focus-visible:border-ring"
+                          : "border-transparent bg-transparent font-semibold shadow-none hover:border-input focus-visible:border-ring"
+                      }
                       aria-label={`${tx("Stage")} ${i + 1}`}
                       value={stage.builtinKey === stage.name ? tx(stage.name) : stage.name}
                       maxLength={100}
@@ -497,12 +513,14 @@ export function StructureEditor({
                     </Button>
                   </div>
                   <StructureGoals
+                    light
                     goals={stage.goals}
                     onChange={(goals) => stageUpdate(stage.id, { goals })}
                   />
                   {s.type === "matrix" && (
-                    <div className="mt-3 space-y-2">
+                    <div className="mt-4 space-y-4 border-t pt-4">
                       <SpeakerFlow
+                        sequence
                         group={stage.id}
                         assignments={stage.assignments}
                         participants={participants}
@@ -527,7 +545,7 @@ export function StructureEditor({
                       />
                       <div className="flex flex-wrap gap-2">
                         <select
-                          className="native-select !w-auto max-w-full"
+                          className="native-select !w-auto max-w-full !rounded-full !border-dashed !text-xs"
                           aria-label={`${tx("Assign participant")}: ${stage.builtinKey === stage.name ? tx(stage.name) : stage.name}`}
                           value=""
                           onChange={(e) => assign(stage.id, e.target.value)}
@@ -558,10 +576,11 @@ export function StructureEditor({
               </SortableRow>
             ))}
           </SortableList>
-          <div className="flex gap-2">
+          <div className="flex flex-col items-start gap-2">
             <Button
               variant="ghost"
               size="sm"
+              className="min-h-12 w-full rounded-xl border-2 border-dashed text-primary hover:border-primary/60"
               disabled={s.stages.length >= 15}
               onClick={() => {
                 const id = crypto.randomUUID();

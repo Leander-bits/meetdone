@@ -41,7 +41,11 @@ test("matrix creation preserves per-stage assignments, ordering, goals and minim
     stages.nth(1).getByRole("combobox", { name: "Role: zhaojiaheng", exact: true }),
   ).toHaveValue("Sales");
   await expect(nodes.first().getByRole("checkbox")).not.toBeChecked();
+  await expect(nodes.first().locator("[data-speaker-node]")).not.toHaveClass(
+    /text-primary-foreground/,
+  );
   await expect(stages.nth(1).getByRole("checkbox")).toBeChecked();
+  await expect(stages.nth(1).locator("[data-speaker-node]")).toHaveClass(/text-primary-foreground/);
   await pointerReorder(page, nodes.first(), nodes.nth(1));
   await expect(nodes.nth(1).locator("[data-speaker-node]")).toHaveText("zhaojiaheng");
   await expect(nodes.first().locator("[data-speaker-arrow]")).toHaveAttribute("data-to", ids[0]);
@@ -121,6 +125,7 @@ for (const locale of ["zh", "en"] as const) {
       /speaker-node.*rounded-full/,
     );
     await expect(page.locator(".speaker-sequence")).toHaveCount(1);
+    await expect(page.locator("[data-speaker-node]").first()).toHaveAttribute("class", style!);
     await page.getByRole("button", { name: t("Stage × Speaker Matrix"), exact: true }).click();
     await expect(stage.locator("[data-speaker-node]")).toHaveCount(4);
     await expect(stage.locator("[data-speaker-node]").first()).toHaveAttribute("class", style!);

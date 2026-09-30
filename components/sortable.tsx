@@ -73,6 +73,7 @@ export function SortableRow({
   flow = false,
   section = false,
   card = false,
+  stage = false,
 }: {
   id: string;
   index: number;
@@ -80,6 +81,7 @@ export function SortableRow({
   flow?: boolean;
   section?: boolean;
   card?: boolean;
+  stage?: boolean;
 }) {
   const { t } = useI18n();
   const {
@@ -99,7 +101,7 @@ export function SortableRow({
       data-dragging={isDragging || undefined}
       data-drag-over={isOver || undefined}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`relative min-w-0 ${card ? "rounded-xl border bg-card p-4 focus-within:border-primary/60" : flow ? "speaker-flow-item" : section ? "border-t py-6" : "rounded-lg border bg-white p-3"} ${isDragging ? "z-20 rounded-lg bg-primary/5 ring-2 ring-primary opacity-80" : isOver ? "rounded-lg border-primary bg-primary/5" : "border-border"}`}
+      className={`relative min-w-0 ${card || stage ? "rounded-xl border bg-card p-4 focus-within:border-primary/60" : flow ? "speaker-flow-item" : section ? "rounded-xl border bg-card p-3 sm:p-4 focus-within:border-primary/60" : "rounded-lg border bg-white p-3"} ${isDragging ? "z-20 rounded-lg bg-primary/5 ring-2 ring-primary opacity-80" : isOver ? "rounded-lg border-primary bg-primary/5" : "border-border"}`}
     >
       <div
         className={
