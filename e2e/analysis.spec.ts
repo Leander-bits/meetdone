@@ -10,7 +10,7 @@ test("blocked demo becomes ready after follow-up and automatically downloads Mar
   await page.goto("/meetings/demo-launch");
   await analyzeSample(page);
   await expect(page.getByRole("status")).toContainText("Blocked");
-  await expect(page.getByRole("article")).toHaveCount(4);
+  await expect(page.getByRole("article")).toHaveCount(5);
   await expect(
     page.getByRole("heading", { name: "Meeting Requirements", exact: true }),
   ).toBeVisible();
@@ -61,7 +61,7 @@ test("exceptions require a reason, preserve blocked readiness and download the r
   await expect(page.getByRole("status")).toContainText("Ended with Exceptions");
   const m = (await saved(page)).find((m: { id: string }) => m.id === "demo-launch");
   expect(m.summary.readiness).toBe("BLOCKED");
-  expect(m.summary.acceptedExceptions).toHaveLength(4);
+  expect(m.summary.acceptedExceptions).toHaveLength(5);
 });
 test("conversion requires owner and deadline and does not silently defer a blocker", async ({
   page,
@@ -100,7 +100,7 @@ test("custom AI analysis renders in one section, preserves evidence and invalida
   });
   await page.route("**/api/analyze-meeting", async (route) => {
     const input = route.request().postDataJSON();
-    const r = input.requirements.items.find((r: { id: string }) => r.id === "l-decision");
+    const r = input.requirements.items.find((r: { kind: string }) => r.kind === "decision");
     await gate;
     await route.fulfill({
       json: {
@@ -238,17 +238,15 @@ test("requirement edits invalidate analysis and preserve user text across langua
   await page.goto("/meetings/demo-launch");
   await analyzeSample(page);
   await page.getByRole("button", { name: "Edit", exact: true }).click();
-  await page.getByRole("button", { name: "Add Goal", exact: true }).first().click();
-  await page.getByLabel("Goal 2", { exact: true }).fill("不要自动翻译此目标");
+  await page.getByLabel("Meeting Goals", { exact: true }).fill("不要自动翻译此目标");
   await page.getByRole("button", { name: "Save requirements", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Not analyzed");
   await page.getByRole("button", { name: "中文", exact: true }).click();
   await expect(page.getByText("不要自动翻译此目标", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "编辑", exact: true }).click();
-  await page.getByRole("button", { name: "移除目标 2", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "移除目标 1", exact: true }).first(),
-  ).toBeDisabled();
+    page.getByRole("textbox", { name: "\u4f1a\u8bae\u76ee\u6807", exact: true }),
+  ).toHaveValue("\u4e0d\u8981\u81ea\u52a8\u7ffb\u8bd1\u6b64\u76ee\u6807");
   await page.getByRole("button", { name: "保存要求", exact: true }).click();
   expect(
     (await saved(page)).find((m: { id: string }) => m.id === "demo-launch").goals,

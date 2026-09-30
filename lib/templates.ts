@@ -97,7 +97,7 @@ export const templates: MeetingTemplate[] = legacyDefaults.map((t) => ({
     })),
   defaultStages: (t.id === "launch"
     ? ["Opening", "Background", "Discussion", "Decision", "Action Items"]
-    : ["Background", "Proposal", "Risks", "Decision", "Next Steps"]
+    : ["Background", "Proposal", "Risks", "Decision", "Actions"]
   ).map((name, i) => ({
     id: `stage-${i}`,
     name,

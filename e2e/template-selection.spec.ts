@@ -45,6 +45,6 @@ for (const locale of ["zh", "en"] as const) {
       });
     }
     await next.click();
-    await expect(dialog.getByLabel(t("Goal") + " 1", { exact: true }).first()).toHaveValue("");
+    await expect(dialog.getByLabel(t("Meeting Goals"), { exact: true }).first()).toHaveValue("");
   });
 }

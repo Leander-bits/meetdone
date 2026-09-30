@@ -247,9 +247,12 @@ test("many speakers wrap without page overflow and remain draggable on touch scr
   const mobile = await context.newPage();
   await mobile.goto(page.url());
   await mobile.getByRole("button", { name: "Edit", exact: true }).click();
+  await mobile.getByRole("dialog").evaluate(async (el) => {
+    await Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished.catch(() => {})));
+  });
   const rows = mobile.locator('[data-sortable^="speakers/"]');
   const firstId = await rows.first().getAttribute("data-sortable");
-  await rows.first().scrollIntoViewIfNeeded();
+  await rows.first().evaluate((el) => el.scrollIntoView({ block: "start" }));
   const handle = await rows.first().locator("[data-drag-handle]").boundingBox();
   const target = await rows.nth(1).locator("[data-drag-handle]").boundingBox();
   const cdp = await context.newCDPSession(mobile);

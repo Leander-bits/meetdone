@@ -168,17 +168,10 @@ for (const width of [1440, 1280, 768, 390]) {
       await page.getByRole("button", { name: t("Continue"), exact: true }).click();
       await expect(
         page.getByRole("heading", { name: t("Meeting Rules"), exact: true }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("textbox", { name: t("Meeting Goals"), exact: true }),
       ).toBeVisible();
-      const toggle = page
-        .getByRole("button", {
-          name: t("Allow conversion into a follow-up action with owner and deadline"),
-          exact: true,
-        })
-        .first();
-      await expect(toggle).toHaveAttribute(
-        "title",
-        t("Allow conversion into a follow-up action with owner and deadline"),
-      );
       await fullWidth(
         page.locator(".creation-overlay .flow-enter").first(),
         width,

@@ -155,7 +155,7 @@ export function initialStructure(
   const stages =
     template && template.structureType !== "time" && template.defaultStages.length
       ? structuredClone(template.defaultStages)
-      : defaults(["Background", "Proposal", "Risks", "Decision", "Next Steps"], "stage");
+      : defaults(["Background", "Proposal", "Risks", "Decision", "Actions"], "stage");
   return {
     type,
     segments: segments.map((segment, i) => ({

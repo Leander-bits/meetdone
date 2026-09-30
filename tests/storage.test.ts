@@ -16,7 +16,11 @@ describe("versioned local persistence", () => {
     m.requirements.items = m.requirements.items.filter((r) => r.kind !== "speaker");
     const result = readMeetings(memoryStorage(JSON.stringify({ version: 1, meetings: [m] })));
     expect(result.warning).toBeNull();
-    expect(result.meetings[0].requirements.items.some((r) => r.kind === "speaker")).toBe(false);
+    expect(
+      result.meetings[0].requirements.items.some(
+        (r) => r.kind === "speaker" && r.level === "required",
+      ),
+    ).toBe(false);
     expect(result.meetings[0].transcript.text).toBe(m.transcript.text);
     expect(result.meetings[0].analysis).toBeNull();
   });

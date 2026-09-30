@@ -1,4 +1,5 @@
 "use client";
+import { GOAL_TEXT_LIMIT, goalDocument, documentGoals } from "@/lib/goal-configuration";
 import { useState } from "react";
 import { Clock3, Users, ListOrdered, Grid2X2, Plus, Trash2, Check } from "lucide-react";
 import {
@@ -36,89 +37,20 @@ export function MeetingGoalsEditor({
   onChange: (goals: Requirement[]) => void;
   creationLayout?: boolean;
 }) {
-  const { t: tx, label } = useI18n();
-  const GoalField = creationLayout ? Textarea : Input;
+  const { t, label } = useI18n();
   return (
     <section className={creationLayout ? "mx-auto w-full max-w-4xl" : undefined}>
-      <h2 className="mb-3 text-lg font-semibold">{tx("Meeting Goals")}</h2>
-      <div className="space-y-2">
-        {goals.map((g, i) => (
-          <div
-            key={g.id}
-            className={
-              creationLayout
-                ? "grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 sm:grid-cols-[auto_minmax(0,1fr)_8rem_auto]"
-                : "flex gap-2"
-            }
-          >
-            <ItemNumber index={i} />
-            <GoalField
-              className={
-                creationLayout
-                  ? "col-span-2 min-h-24 resize-y rounded-xl bg-card px-4 py-3 sm:col-span-1"
-                  : undefined
-              }
-              aria-label={`${tx("Goal")} ${i + 1}`}
-              value={label(g)}
-              maxLength={500}
-              onChange={(e) =>
-                onChange(
-                  goals.map((x) =>
-                    x.id === g.id ? { ...x, label: e.target.value, builtinKey: undefined } : x,
-                  ),
-                )
-              }
-            />
-            <select
-              aria-label={`${tx("Requirement level")} ${i + 1}`}
-              className={`native-select !w-32 shrink-0 ${creationLayout ? "col-start-2 sm:col-start-auto" : ""}`}
-              value={g.level}
-              onChange={(e) =>
-                onChange(
-                  goals.map((x) =>
-                    x.id === g.id ? { ...x, level: e.target.value as Requirement["level"] } : x,
-                  ),
-                )
-              }
-            >
-              <option value="required">{tx("Required")}</option>
-              <option value="recommended">{tx("Recommended")}</option>
-              <option value="record_only">{tx("Record only")}</option>
-            </select>
-            <Button
-              variant="ghost"
-              size="icon"
-              disabled={i === 0}
-              aria-label={`${tx("Remove goal")} ${i + 1}`}
-              onClick={() => onChange(goals.filter((x) => x.id !== g.id))}
-            >
-              <Trash2 size={14} />
-            </Button>
-          </div>
-        ))}
-      </div>
-      <Button
-        className="mt-2"
-        size="icon"
-        title={tx("Add Goal")}
-        aria-label={tx("Add Goal")}
-        variant="ghost"
-        disabled={goals.length >= 20}
-        onClick={() =>
-          onChange([
-            ...goals,
-            {
-              id: crypto.randomUUID(),
-              kind: "goal",
-              label: "",
-              level: "required",
-              allowsDeferral: false,
-            },
-          ])
-        }
-      >
-        <Plus size={14} />
-      </Button>
+      <label className="block">
+        <span className="mb-3 block text-lg font-semibold">{t("Meeting Goals")}</span>
+        <Textarea
+          aria-label={t("Meeting Goals")}
+          className="min-h-48 rounded-xl bg-card p-4 leading-7 placeholder:text-muted-foreground/60"
+          maxLength={GOAL_TEXT_LIMIT}
+          value={goalDocument(goals, label)}
+          placeholder={t("Meeting goal prompt")}
+          onChange={(e) => onChange(documentGoals(e.target.value, goals[0]?.id))}
+        />
+      </label>
     </section>
   );
 }

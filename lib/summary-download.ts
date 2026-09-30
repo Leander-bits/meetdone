@@ -16,9 +16,9 @@ export function summaryMarkdown(m: Meeting, locale: Locale) {
   const list = (heading: string, values: string[]) =>
     `## ${tx(heading)}\n\n${values.length ? values.map((v) => `- ${safe(v)}`).join("\n") : tx("None recorded")}\n`;
   const name = m.builtinTitle ? tx(m.title) : m.title;
-  const originalGoals = m.requirements.items
-    .filter((r) => r.kind === "goal")
-    .map((r) => (r.builtinKey === r.label ? tx(r.label) : r.label));
+  const originalGoals = (
+    m.configurationVersion === 2 ? m.goals : m.requirements.items.filter((r) => r.kind === "goal")
+  ).map((r) => (r.builtinKey === r.label ? tx(r.label) : r.label));
   return (
     `# MeetDone · ${name}\n\n${scheduleText(m) ?? tx("Schedule not recorded")}\n\n` +
     list("Original Meeting Goals", originalGoals) +

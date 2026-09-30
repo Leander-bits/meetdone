@@ -12,12 +12,7 @@ import {
   updateActionItems,
   updateRequirements,
 } from "@/lib/meeting-state";
-import {
-  compileRequirements,
-  durationMinutes,
-  validConfiguration,
-  scheduleText,
-} from "@/lib/meeting-structure";
+import { durationMinutes, scheduleText } from "@/lib/meeting-structure";
 import { MeetingRequirementsView } from "./meeting-requirements";
 import { orderedRequirements, requirementDisplay } from "@/lib/requirement-display";
 import { finalEvaluation } from "@/lib/final-evaluation";
@@ -33,7 +28,11 @@ import { coverageFor } from "@/lib/coverage";
 import { ActionItems } from "./action-items";
 import { GapCheck } from "./gap-check";
 import { MeetingSummaryView } from "./meeting-summary";
-import { MeetingRulesEditor } from "./meeting-rules-editor";
+import {
+  compileGoalRequirements,
+  validGoalConfiguration,
+  IMPORT_REVIEW_NOTE,
+} from "@/lib/goal-configuration";
 import { MeetingGoalsEditor, StructureEditor } from "./structure-editor";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -53,11 +52,6 @@ function EditConfiguration({
   const [goals, setGoals] = useState(structuredClone(m.goals));
   const [structure, setStructure] = useState(structuredClone(m.structure));
   const [people, setPeople] = useState(structuredClone(m.participants));
-  const [rules, setRules] = useState(() =>
-    m.requirements.items.filter(
-      (r) => r.kind !== "goal" && !r.id.startsWith("structure-") && !r.id.startsWith("speaker-"),
-    ),
-  );
   const duration = durationMinutes(m.startTime, m.endTime);
   return (
     <Dialog open onOpenChange={(open) => !open && close()}>
@@ -73,8 +67,9 @@ function EditConfiguration({
             <span className="field-label">{tx("Meeting name")}</span>
             <Input value={title} maxLength={140} onChange={(e) => setTitle(e.target.value)} />
           </label>
-          <MeetingGoalsEditor goals={goals} onChange={setGoals} />
+          <MeetingGoalsEditor creationLayout goals={goals} onChange={setGoals} />
           <StructureEditor
+            creationLayout
             structure={structure}
             onChange={setStructure}
             participants={people}
@@ -82,10 +77,6 @@ function EditConfiguration({
             duration={duration || 30}
             template={getTemplate(m.templateId)}
           />
-          <section>
-            <h2 className="text-lg font-semibold">{tx("Meeting Rules")}</h2>
-            <MeetingRulesEditor rules={rules} onChange={setRules} />
-          </section>
         </div>
         <DialogFooter className="shrink-0 border-t bg-white px-4 py-4 sm:px-6 lg:px-8">
           <Button variant="ghost" onClick={close}>
@@ -93,12 +84,14 @@ function EditConfiguration({
           </Button>
           <Button
             disabled={
-              !title.trim() || !validConfiguration(goals, structure, people, duration || 30, rules)
+              !title.trim() || !validGoalConfiguration(goals, structure, people, duration || 30)
             }
             onClick={() => {
               const updated = {
-                ...updateRequirements(m, compileRequirements(goals, structure, people, rules)),
+                ...updateRequirements(m, compileGoalRequirements(goals, structure, people)),
+                configurationVersion: 2 as const,
                 goals,
+                migrationNote: m.migrationNote === IMPORT_REVIEW_NOTE ? undefined : m.migrationNote,
                 structure,
                 participants: people,
                 title:
@@ -225,7 +218,7 @@ export function MeetingWorkspace({ id }: { id: string }) {
         </header>
         {warning && <Notice error>{warning}</Notice>}
         {error && <Notice error>{error}</Notice>}
-        {m.migrationNote && <Notice>{m.migrationNote}</Notice>}
+        {m.migrationNote && <Notice>{tx(m.migrationNote)}</Notice>}
         {ended ? (
           <MeetingSummaryView meeting={m} />
         ) : (
@@ -304,6 +297,48 @@ export function MeetingWorkspace({ id }: { id: string }) {
                       );
                     })}
                 </div>
+                <details className="my-4 border-y py-3">
+                  <summary>
+                    {tx("Speaker Inputs")} / {tx("Decisions")}
+                  </summary>
+                  <div className="mt-3 space-y-3 text-sm">
+                    {m.analysis!.speakers.map((speaker) => (
+                      <div key={speaker.requirementId}>
+                        <p>
+                          {m.requirements.items.find((r) => r.id === speaker.requirementId)?.label}{" "}
+                          ?{" "}
+                          {tx(
+                            speaker.status === "opinion"
+                              ? "Complete"
+                              : speaker.status === "mentioned"
+                                ? "Partial"
+                                : "Missing",
+                          )}
+                        </p>
+                        <p className="text-muted-foreground">{speaker.detail}</p>
+                        <EvidenceList ids={speaker.evidenceIds} evidence={m.analysis!.evidence} />
+                      </div>
+                    ))}
+                    {m.analysis!.decisions.map((decision) => (
+                      <div key={decision.requirementId}>
+                        <p>
+                          {decision.detail ||
+                            m.requirements.items.find((r) => r.id === decision.requirementId)
+                              ?.label}{" "}
+                          ?{" "}
+                          {tx(
+                            decision.status === "decided"
+                              ? "Decided"
+                              : decision.status === "discussed"
+                                ? "Discussed, not decided"
+                                : "Missing",
+                          )}
+                        </p>
+                        <EvidenceList ids={decision.evidenceIds} evidence={m.analysis!.evidence} />
+                      </div>
+                    ))}
+                  </div>
+                </details>
                 {m.structure.type === "speaker" && (
                   <p className="mt-3 text-sm text-muted-foreground">
                     {tx("Next required speaker")}:{" "}

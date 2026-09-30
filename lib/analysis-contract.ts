@@ -9,6 +9,26 @@ export const MAX_REQUEST_BYTES = 650_000;
 export const analysisRequestSchema = z
   .object({
     templateId: z.string().min(1).max(100),
+    context: z
+      .object({
+        goals: z.string().max(5000),
+        structure: z.enum(["time", "speaker", "stages", "matrix"]),
+        participants: z
+          .array(z.object({ name: z.string().max(100), role: z.string().max(100) }))
+          .max(30),
+        stages: z
+          .array(
+            z.object({
+              name: z.string().max(100),
+              goals: z.array(z.string().max(1000)).max(5),
+              speakers: z
+                .array(z.object({ name: z.string().max(100), required: z.boolean() }))
+                .max(30),
+            }),
+          )
+          .max(150),
+      })
+      .optional(),
     requirements: requirementsSchema.refine(validRequirementLists),
     transcript: z.object({
       text: z.string().max(MAX_TRANSCRIPT_LENGTH),

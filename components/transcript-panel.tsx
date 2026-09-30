@@ -8,6 +8,7 @@ import { Notice } from "./shared";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { importTextFile } from "@/lib/transcript-import";
+import { launchFollowUp } from "@/lib/demo-transcripts";
 
 export function TranscriptPanel({
   meeting: m,
@@ -50,6 +51,33 @@ export function TranscriptPanel({
           </Button>
         )}
       </div>
+      {m.isDemo && (
+        <p className="text-xs text-muted-foreground">
+          {tx("Mock sample content; real AI analysis")}
+        </p>
+      )}
+      {m.isDemo &&
+        m.templateId === "launch" &&
+        !ended &&
+        !m.transcript.text.includes(launchFollowUp[0].text) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={pending || importing}
+            onClick={() =>
+              update((current) =>
+                updateTranscript(
+                  current,
+                  current.transcript.text +
+                    "\n\n" +
+                    launchFollowUp.map((line) => `${line.speaker}：${line.text}`).join("\n\n"),
+                ),
+              )
+            }
+          >
+            {tx("Append sample follow-up")}
+          </Button>
+        )}
       <input
         ref={fileInput}
         type="file"

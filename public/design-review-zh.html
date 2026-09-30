@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MeetDone｜产品调研与设计复盘</title>
+<style>
+  :root{--bg:#f6f7f9;--card:#fff;--text:#17191c;--muted:#6b7280;--line:#e5e7eb;--accent:#111827;--soft:#eef2f7}
+  *{box-sizing:border-box} body{margin:0;font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.65}
+  .wrap{max-width:1120px;margin:0 auto;padding:48px 28px 64px} header{display:flex;justify-content:space-between;gap:24px;align-items:flex-end;margin-bottom:28px}
+  h1{font-size:34px;line-height:1.2;margin:0 0 8px}.sub{color:var(--muted);font-size:15px;margin:0}.tag{background:var(--accent);color:#fff;padding:7px 11px;border-radius:999px;font-size:13px;white-space:nowrap}
+  section{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px;margin:16px 0} h2{font-size:20px;margin:0 0 14px} h3{font-size:15px;margin:18px 0 8px}
+  p{margin:8px 0;color:#30343a} ul{margin:8px 0 0 20px;padding:0} li{margin:5px 0}.muted{color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px} th,td{text-align:left;vertical-align:top;padding:12px 10px;border-bottom:1px solid var(--line)} th{font-weight:650;background:#fafafa} tr:last-child td{border-bottom:none}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--soft);font-size:12px;margin:2px 4px 2px 0}.quote{border-left:3px solid var(--accent);padding-left:14px;color:#30343a;margin:10px 0 0}
+  .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}.mini{background:#fafafa;border:1px solid var(--line);border-radius:14px;padding:14px}.mini b{display:block;margin-bottom:4px}
+  a{color:#374151;text-decoration:none;border-bottom:1px dotted #9ca3af}.footer{color:var(--muted);font-size:12px;text-align:center;margin-top:20px}
+  @media (max-width:800px){.wrap{padding:28px 14px 40px}header{align-items:flex-start;flex-direction:column}.grid{grid-template-columns:1fr}table{display:block;overflow-x:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><h1>MeetDone｜产品调研与设计复盘</h1><p class="sub">一个关注“这场会现在到底能不能结束”的会议助手。</p></div>
+    <div class="tag">Take-home / Vibe Coding</div>
+  </header>
+
+  <section>
+    <h2>当前版本 · 可以直接验证的产品闭环</h2>
+    <p>创建会议 → 在一个目标文本框写明议题、结论、决策和行动项 → 选择结构，补充阶段目标和必须发言者 → 输入或导入文字记录 → 点击 AI 分析或准备结束会议 → 查看证据与缺口 → 补充讨论、转行动或记录例外 → 结束并下载总结。</p>
+    <p>已删除单独的会议规则表单。时间顺序、阶段推进、阶段 × 发言人展示各自的阶段目标；发言顺序展示必要发言者。阶段内发言要求独立，顺序只作引导。</p>
+    <p><b>AI 与校验的边界：</b>DeepSeek 提取覆盖情况、明确决策、行动项和逐行引用。议题/结论/决策/行动项标签可表达具体必要结果；自然语言目标中的未决结果也须标记为未完成。模型不决定可否结束，最终阻塞与跟进由确定性规则引擎计算。</p>
+    <p><b>测试入口：</b>首页提供三份独立模拟会议副本。上线评审故意保留缺口，可追加示例讨论后重新分析；迭代复盘和客户推进会展示核心结果与次要跟进的区分。示例内容为 Mock，AI 分析为真实调用，失败不伪造结果。</p>
+    <p><b>已知限制：</b>仅支持文字和 UTF-8 TXT，50,000 字符上限；无实时转写、主动实时提示、音视频上传或会议平台集成。无账号或云端数据库，数据存于当前浏览器。需要服务器端 DeepSeek 配置；日期需明确写出。AI 可能误判，需核对引用。</p>
+  </section>
+
+  <section>
+    <h2>1. 产品调研</h2>
+    <p class="muted">以下保留原复盘中的调研笔记，代表作者当时的产品印象，不是对这些产品当前能力的完整审计；也不表示 MeetDone 已实现所有列出的能力。</p>
+    <p>我先看了几类常见会议助手：大部分产品已经把“录音、转写、总结、Action Items”做得很成熟；我更想补的是另一个问题：<b>会议结束前，还有什么没有讨论、没有决定、没有人负责？</b></p>
+    <table>
+      <thead><tr><th>产品 / 项目</th><th>主要能力</th><th>优点</th><th>不足 / 空间</th></tr></thead>
+      <tbody>
+        <tr><td>Otter</td><td><span class="pill">实时转写</span><span class="pill">总结</span><span class="pill">行动项</span></td><td>成熟、自动化程度高，能从会议里提取决定和行动项。</td><td>更偏“记录会议发生了什么”，对“能否结束会议”的判断不是核心。</td></tr>
+        <tr><td>Fireflies</td><td><span class="pill">实时笔记</span><span class="pill">行动项</span><span class="pill">集成</span></td><td>会议数据和工作流连接得很好，适合团队自动化。</td><td>信息很多，重点仍然是会后记录与执行，而不是会中完成度检查。</td></tr>
+        <tr><td>Fellow</td><td><span class="pill">Agenda</span><span class="pill">模板</span><span class="pill">AI Notes</span></td><td>会前结构做得更完整，比较接近“让会议本身更有组织”。</td><td>对“必须发言的人有没有表态、讨论过但没决定”等结束条件，还可以更直接。</td></tr>
+        <tr><td>GhostMeet（开源）</td><td><span class="pill">自托管</span><span class="pill">转写</span><span class="pill">总结</span></td><td>开源、可控，适合快速参考会议 AI 的基本链路。</td><td>重点仍是 transcript → summary / action items。</td></tr>
+        <tr><td>MeetingBro（开源）</td><td><span class="pill">实时转写</span><span class="pill">摘要</span><span class="pill">本地化</span></td><td>实时链路完整，适合参考语音和 live transcript 的实现思路。</td><td>更像“会议记录 Copilot”，不是“会议结束判断器”。</td></tr>
+      </tbody>
+    </table>
+    <p class="quote"><b>结论：</b>从这次调研样本看，成熟产品已经很好地解决了“记下来”和“总结出来”。所以 MeetDone 不去重复做一个更复杂的会议纪要工具，而是把重点放在 <b>会前定义 Done → 会中/会后检查 Done → 再决定是否结束会议</b>。</p>
+  </section>
+
+  <section>
+    <h2>2. 产品思维</h2>
+    <div class="grid">
+      <div class="mini"><b>设计观念：简约</b>能用结构、图形和状态表达的，就少放一段说明文字；但图标必须一眼能看懂，不为了“好看”牺牲含义。</div>
+      <div class="mini"><b>功能优先</b>我更在意第一次打开后能不能直接创建会议、放入 Transcript、跑分析、判断能否结束，而不是先做一套很“像产品官网”的宣传页。</div>
+      <div class="mini"><b>第一次使用</b>我一直把自己当成第一次接触这类工具的用户：如果我会停下来想“下一步点什么”，那这个界面就还不够清楚。</div>
+    </div>
+    <h3>调研之后怎么落到设计</h3>
+    <ul>
+      <li>模板只负责“会议结构”，不绑定具体参会者和 Transcript，避免数据冲突。</li>
+      <li>会议支持 4 种结构：时间顺序、发言人顺序、阶段推进、阶段 × 发言人。</li>
+      <li>LLM 只负责理解 Transcript；最终能不能结束，交给确定性的 Rule Engine 判断。</li>
+      <li>“阻塞”和“会后跟进”分开，避免因为一个普通 Action Item 没有 deadline 就把整场会判死。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>3. 我实际做了什么</h2>
+    <p>我没有一开始就追求把所有会议软件、实时语音、数据库都接上，而是先把最核心的闭环跑通：</p>
+    <p><b>创建会议 → 定义目标和结构 → 输入 / 导入 Transcript → AI 结构化分析 → Rule Engine 判断 → 继续讨论 / 转行动项 / 例外结束 → 导出总结</b></p>
+    <div class="grid">
+      <div class="mini"><b>AI 分工</b>DeepSeek：从 Transcript 中提取目标覆盖、发言、决策、行动项和证据。</div>
+      <div class="mini"><b>规则分工</b>Rule Engine：判断哪些是真阻塞，哪些只是 Follow-up，不让模型直接决定“会议能不能结束”。</div>
+      <div class="mini"><b>交付取舍</b>当前先支持文字 Transcript 和 TXT 导入；实时语音、Teams / 飞书接入留作下一步。</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>4. 几个关键取舍</h2>
+    <ul>
+      <li><b>先做可用，再做完整：</b>先保证主流程能跑通，再逐步补模板、拖拽、双语、导出等体验。</li>
+      <li><b>不把 AI 当规则：</b>AI 可以理解自然语言，但关键结束条件尽量用结构化规则判断。</li>
+      <li><b>减少“配置感”：</b>把很多列表改成可拖拽、节点、时间条，让用户更像是在“搭会议”，而不是填后台表单。</li>
+      <li><b>诚实处理边界：</b>目前没有把实时语音伪装成已完成能力；现阶段输入还是 Transcript。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>5. 如果继续做</h2>
+    <p>下一步我会优先做两件事：一是接实时 Speech-to-Text + Speaker Diarization，让 MeetDone 能在会议进行中持续判断；二是接 Teams / 飞书 / Zoom，让 Transcript 不再依赖手动导入。</p>
+  </section>
+
+  <section>
+    <h2>参考</h2>
+    <p class="muted">
+      <a href="https://otter.ai/" target="_blank">Otter</a> ·
+      <a href="https://fireflies.ai/product/real-time" target="_blank">Fireflies</a> ·
+      <a href="https://fellow.ai/meeting-agenda-software" target="_blank">Fellow</a> ·
+      <a href="https://github.com/Higangssh/ghostmeet" target="_blank">GhostMeet</a> ·
+      <a href="https://github.com/armpro24-blip/MeetingBro" target="_blank">MeetingBro</a>
+    </p>
+  </section>
+
+  <div class="footer">MeetDone · Product Research & Design Notes</div>
+</div>
+</body>
+</html>

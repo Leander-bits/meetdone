@@ -85,11 +85,7 @@ test("template selection, protected built-ins and dynamic goals persist with mee
     page.getByRole("button", { name: "Product Launch Decision", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.getByRole("button", { name: "Add Goal", exact: true }).first().click();
-  await expect(
-    page.getByRole("button", { name: "Remove goal 1", exact: true }).first(),
-  ).toBeDisabled();
-  await page.getByLabel("Goal 2", { exact: true }).fill("我的新目标");
+  await page.getByLabel("Meeting Goals", { exact: true }).fill("\u6211\u7684\u65b0\u76ee\u6807");
   await page.getByRole("button", { name: "Time Sequence", exact: true }).click();
   await page.getByRole("button", { name: "Create Meeting", exact: true }).click();
   await expect(page.getByRole("heading", { name: "我的会议，不要翻译" })).toBeVisible();
@@ -99,7 +95,7 @@ test("template selection, protected built-ins and dynamic goals persist with mee
   expect(m.startTime).toBe("09:00");
   expect(m.endTime).toBe("09:30");
   expect(m.participants[0].name).toBe("zhaojiaheng");
-  expect(m.goals).toHaveLength(2);
+  expect(m.goals).toHaveLength(1);
   await page.getByRole("button", { name: "中文", exact: true }).click();
   await expect(page.getByRole("heading", { name: "我的会议，不要翻译" })).toBeVisible();
   await expect(page.getByText("我的新目标", { exact: true })).toBeVisible();
@@ -109,8 +105,8 @@ test("blank custom template can be saved, reused, edited and deleted independent
 }) => {
   await english(page);
   await configuration(page, "Create New Template");
-  await expect(page.getByLabel("Goal 1", { exact: true }).first()).toHaveValue("");
-  await page.getByLabel("Goal 1", { exact: true }).first().fill("Agree on one outcome");
+  await expect(page.getByLabel("Meeting Goals", { exact: true })).toHaveValue("");
+  await page.getByLabel("Meeting Goals", { exact: true }).fill("Agree on one outcome");
   await page.getByRole("button", { name: "Time Sequence", exact: true }).click();
   await page.getByRole("button", { name: "Save as Template", exact: true }).click();
   await page.getByLabel("Template name", { exact: true }).fill("Reusable review");
@@ -121,10 +117,10 @@ test("blank custom template can be saved, reused, edited and deleted independent
   await page.getByRole("link", { name: "Back", exact: true }).click();
   await page.reload();
   await configuration(page, "Reusable review");
-  await expect(page.getByLabel("Goal 1", { exact: true }).first()).toHaveValue(
+  await expect(page.getByLabel("Meeting Goals", { exact: true })).toHaveValue(
     "Agree on one outcome",
   );
-  await page.getByLabel("Goal 1", { exact: true }).first().fill("Edited outcome");
+  await page.getByLabel("Meeting Goals", { exact: true }).fill("Edited outcome");
   await page.getByRole("button", { name: "Save as Template", exact: true }).click();
   await page.getByRole("button", { name: "Save Template", exact: true }).click();
   await page.getByRole("button", { name: "Back", exact: true }).click();

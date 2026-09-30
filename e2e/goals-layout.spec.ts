@@ -16,16 +16,13 @@ for (const locale of ["zh", "en"] as const) {
     const t = (key: string) => translate(locale, key);
     await expect(dialog.locator('[aria-current="step"]')).toContainText(t("Goals and Structure"));
     await expect(page.locator("[data-structure-editor]")).toHaveCount(0);
-    const goal = dialog.getByLabel(`${t("Goal")} 1`, { exact: true }).first();
+    const goal = dialog.getByLabel(t("Meeting Goals"), { exact: true }).first();
     await expect(goal).toHaveJSProperty("tagName", "TEXTAREA");
-    await expect(
-      dialog.getByRole("button", { name: `${t("Remove goal")} 1`, exact: true }),
-    ).toBeDisabled();
     await goal.fill("User goal stays unchanged");
-    await dialog.getByRole("button", { name: t("Add Goal"), exact: true }).click();
-    await dialog.getByLabel(`${t("Goal")} 2`, { exact: true }).fill("Second goal");
-    await dialog.getByRole("button", { name: `${t("Remove goal")} 2`, exact: true }).click();
-    await expect(dialog.getByLabel(`${t("Goal")} 2`, { exact: true })).toHaveCount(0);
+    await expect(dialog.getByRole("button", { name: t("Add Goal"), exact: true })).toHaveCount(0);
+    await expect(
+      dialog.getByRole("heading", { name: t("Meeting Rules"), exact: true }),
+    ).toHaveCount(0);
     await expect(
       dialog.getByRole("button", { name: t("Create Meeting"), exact: true }),
     ).toBeDisabled();

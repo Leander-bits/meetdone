@@ -290,8 +290,8 @@ describe("ending and download content", () => {
     const gap = evaluateMeeting(m).blockingGaps.find(
       (g) => g.requirementId === "speaker-structure-next-alex",
     )!;
-    expect(meetingPresentation(m, "zh").gapTitle(gap)).toContain("下一步");
-    expect(meetingPresentation(m, "en").gapTitle(gap)).toContain("Next Steps");
+    expect(meetingPresentation(m, "zh").gapTitle(gap)).toContain("行动");
+    expect(meetingPresentation(m, "en").gapTitle(gap)).toContain("Actions");
   });
   it("localizes summary system text without translating or mutating user content", () => {
     const m = endMeeting(prepareMeeting(freshDemo()), "Assign an owner.");

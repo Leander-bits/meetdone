@@ -44,48 +44,16 @@ test("time errors are immediate, preserve input, and retain participants", async
   await expect(page.getByLabel("Display name", { exact: true })).toBeEditable();
 });
 
-test("creation and editing share expanded ordered rules, numbering and deferral icon", async ({
+test("creation and editing share a visible goal document without a hidden rules form", async ({
   page,
 }) => {
   await english(page);
   await configuration(page);
   const checkRules = async (root: Locator) => {
-    const rules = root
-      .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Meeting Rules", exact: true }) })
-      .last();
-    await expect(rules.locator("summary")).toHaveCount(0);
-    await expect(rules.locator("legend")).toHaveText([
-      "Topics",
-      "Required conclusions",
-      "Decisions",
-      "Action outputs",
-    ]);
-    const topics = rules.locator("fieldset").first();
-    await expect(topics.locator("[data-item-number]")).toHaveText(["1.", "2."]);
-    await topics.getByRole("button", { name: "Add item", exact: true }).click();
-    await topics.getByRole("textbox", { name: "Topics 3", exact: true }).fill("Extra topic");
-    await topics.getByRole("button", { name: "Remove: Topics 2", exact: true }).click();
-    await expect(topics.getByRole("textbox", { name: "Topics 2", exact: true })).toHaveValue(
-      "Extra topic",
-    );
-    await expect(topics.locator("[data-item-number]")).toHaveText(["1.", "2."]);
-    const toggle = topics
-      .getByRole("button", {
-        name: "Allow conversion into a follow-up action with owner and deadline",
-        exact: true,
-      })
-      .first();
-    const original = await toggle.getAttribute("aria-pressed");
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-pressed", original === "true" ? "false" : "true");
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-pressed", original!);
-    await expect(toggle).toHaveAttribute(
-      "title",
-      "Allow conversion into a follow-up action with owner and deadline",
-    );
-    await expect(topics.getByRole("checkbox")).toHaveCount(0);
+    await expect(root.getByRole("heading", { name: "Meeting Rules", exact: true })).toHaveCount(0);
+    const goal = root.getByLabel("Meeting Goals", { exact: true });
+    await expect(goal).toBeEditable();
+    await goal.fill("Assess release readiness\nTopic: Extra topic\nDecision: Confirm release");
   };
   await checkRules(page.getByRole("dialog"));
   await page.getByRole("button", { name: "Create Meeting", exact: true }).click();
@@ -152,10 +120,10 @@ test("sample meetings require AI clicks and show human-readable requirements in 
   await analyzeSample(page);
   const results = page.locator("#analysis-results");
   await expect(
-    results.getByText("Meeting Goals · Assess release readiness", { exact: true }),
+    results.getByText("Meeting Goals · 评估收藏提醒功能能否在下周一上线。", { exact: true }),
   ).toBeVisible();
   await expect(
-    results.getByText("Required conclusions · Agree on the launch readiness assessment", {
+    results.getByText("Required conclusions · 产品与技术对发布准备情况达成共识", {
       exact: true,
     }),
   ).toBeVisible();

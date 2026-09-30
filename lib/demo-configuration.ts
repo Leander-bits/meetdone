@@ -64,8 +64,8 @@ export function demoConfiguration(templateId: string) {
       },
       {
         id: "next",
-        name: "Next Steps",
-        builtinKey: "Next Steps",
+        name: "Actions",
+        builtinKey: "Actions",
         custom: false,
         goals: [{ id: "next-goal", text: "" }],
         assignments: [

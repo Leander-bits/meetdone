@@ -16,7 +16,9 @@ export function requirementDisplay(
   const stages = m.structure.type === "time" ? m.structure.segments : m.structure.stages;
   const stageName = (s: (typeof stages)[number]) => (s.builtinKey === s.name ? t(s.name) : s.name);
   for (const stage of stages) {
-    const goal = stage.goals.find((g) => r.id === `structure-goal-${g.id}`);
+    const goal = stage.goals.find(
+      (g) => r.id === `structure-goal-${g.id}` || r.id.startsWith(`structure-goal-${g.id}-line-`),
+    );
     if (goal)
       return [
         t(m.structure.type === "time" ? "Time Sequence" : "Stage Goals"),

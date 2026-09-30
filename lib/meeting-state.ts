@@ -127,8 +127,10 @@ export function buildSummary(m: Meeting, endedAt: string): MeetingSummary {
   const check = evaluateMeeting(m);
   const allGaps = [...check.blockingGaps, ...check.followUpGaps];
   return {
-    originalGoal: m.requirements.items
-      .filter((r) => r.kind === "goal")
+    originalGoal: (m.configurationVersion === 2
+      ? m.goals
+      : m.requirements.items.filter((r) => r.kind === "goal")
+    )
       .map((r) => r.label)
       .join("; "),
     goalsAchieved: m.analysis.goals
@@ -142,7 +144,15 @@ export function buildSummary(m: Meeting, endedAt: string): MeetingSummary {
       ),
     ],
     decisions: m.analysis.decisions.filter((d) => d.status === "decided").map((d) => d.detail),
-    unresolvedIssues: m.analysis.unresolvedIssues.map((i) => i.description),
+    unresolvedIssues: [
+      ...new Set([
+        ...m.analysis.unresolvedIssues.map((i) => i.description),
+        ...m.analysis.decisions
+          .filter((d) => d.status === "discussed")
+          .map((d) => d.detail)
+          .filter(Boolean),
+      ]),
+    ],
     actionItems: structuredClone(m.actionItems),
     remainingRisks: allGaps.map((g) => `${g.title}: ${g.explanation}`),
     acceptedExceptions: m.gapResolutions

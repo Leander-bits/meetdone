@@ -118,6 +118,11 @@ export function SortableRow({
             type="button"
             {...attributes}
             {...listeners}
+            onPointerDown={(event) => {
+              // Move focus off a text field before touch dragging, without scrolling the dialog.
+              event.currentTarget.focus({ preventScroll: true });
+              listeners?.onPointerDown?.(event);
+            }}
             aria-label={`${t("Drag to reorder")} ${index + 1}`}
             title={t("Drag to reorder")}
             className="flex h-9 w-7 touch-none items-center justify-center rounded cursor-grab text-muted-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-primary active:cursor-grabbing"

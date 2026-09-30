@@ -115,7 +115,7 @@ test("matrix assigns one person to multiple stages with independent required fla
     .locator("option")
     .nth(1)
     .getAttribute("value");
-  for (const stage of ["Background", "Proposal", "Risks", "Decision", "Next Steps"])
+  for (const stage of ["Background", "Proposal", "Risks", "Decision", "Actions"])
     await page
       .getByRole("combobox", { name: `Assign participant: ${stage}`, exact: true })
       .selectOption(personId!);

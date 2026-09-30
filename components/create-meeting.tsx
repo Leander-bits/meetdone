@@ -7,10 +7,8 @@ import { templates } from "@/lib/templates";
 import { blankTemplate, isBuiltinTemplate } from "@/lib/custom-templates";
 import { createMeeting } from "@/lib/meeting-factory";
 import {
-  compileRequirements,
   durationMinutes,
   reusableTemplate,
-  validConfiguration,
   validParticipants,
   validSchedule,
   timezoneOffset,
@@ -19,7 +17,11 @@ import { MeetingTimePicker } from "./meeting-time-picker";
 import { ParticipantInput } from "./participant-input";
 import { TemplateSelection } from "./template-selection";
 import { BasicInformationHeader } from "./basic-information-header";
-import { MeetingRulesEditor } from "./meeting-rules-editor";
+import {
+  compileGoalRequirements,
+  visibleTemplate,
+  validGoalConfiguration,
+} from "@/lib/goal-configuration";
 import { StructureEditor, MeetingGoalsEditor } from "./structure-editor";
 import { useI18n } from "./language-provider";
 import { useWorkspace } from "./workspace-store";
@@ -64,11 +66,10 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
     validSchedule(date, startTime, endTime, timezone) &&
     validParticipants(participants) &&
     !participantDraft.trim();
-  const valid =
-    !!structure &&
-    validConfiguration(goals, structure, participants, duration, selected?.rules ?? []);
+  const valid = !!structure && validGoalConfiguration(goals, structure, participants, duration);
   const close = () => (dirty ? setDiscard(true) : onClose());
-  const choose = (template: MeetingTemplate) => {
+  const choose = (source: MeetingTemplate) => {
+    const template = visibleTemplate(source, tx);
     setSelected(template);
     setGoals(structuredClone(template.defaultGoals));
     setStructure(null);
@@ -77,9 +78,10 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
   };
   function finish() {
     if (!selected || !structure || !valid || !pageOneValid) return;
-    const requirements = compileRequirements(goals, structure, participants, selected.rules);
+    const requirements = compileGoalRequirements(goals, structure, participants);
     const meeting = {
       ...createMeeting(selected.id, crypto.randomUUID(), false, selected),
+      configurationVersion: 2 as const,
       title: name.trim(),
       builtinTitle: false,
       date,
@@ -219,24 +221,7 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                   <h2 className="mx-auto w-full max-w-4xl text-2xl font-semibold sm:pt-5">
                     {tx("Goals and Structure")}
                   </h2>
-                  <MeetingGoalsEditor creationLayout goals={goals} onChange={setGoals} />
-                  <StructureEditor
-                    creationLayout
-                    structure={structure}
-                    onChange={setStructure}
-                    participants={participants}
-                    onParticipantsChange={setParticipants}
-                    duration={duration}
-                    template={selected}
-                  />
-                  <section className="border-t pt-4">
-                    <h2 className="text-lg font-semibold">{tx("Meeting Rules")}</h2>
-                    <MeetingRulesEditor
-                      rules={selected.rules}
-                      onChange={(rules) => setSelected({ ...selected, rules })}
-                    />
-                  </section>
-                  <div>
+                  <div className="mx-auto w-full max-w-4xl">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -267,15 +252,10 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                               goals,
                               structure,
                               participants,
-                              requirements: compileRequirements(
-                                goals,
-                                structure,
-                                participants,
-                                selected.rules,
-                              ),
+                              requirements: compileGoalRequirements(goals, structure, participants),
                             });
-                            saveTemplate(t);
-                            setSelected(t);
+                            saveTemplate({ ...t, rules: [] });
+                            setSelected({ ...t, rules: [] });
                             setSavingTemplate(false);
                             setSavedMessage(true);
                           }}
@@ -285,6 +265,16 @@ export function CreateMeeting({ onClose }: { onClose: () => void }) {
                       </div>
                     )}
                   </div>
+                  <MeetingGoalsEditor creationLayout goals={goals} onChange={setGoals} />
+                  <StructureEditor
+                    creationLayout
+                    structure={structure}
+                    onChange={setStructure}
+                    participants={participants}
+                    onParticipantsChange={setParticipants}
+                    duration={duration}
+                    template={selected}
+                  />
                 </>
               )}
             </div>

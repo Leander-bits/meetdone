@@ -23,7 +23,7 @@ export function MeetingSummaryView({ meeting: m }: { meeting: Meeting }) {
       {items.length ? (
         <ul className="list-disc space-y-1.5 pl-4 text-sm leading-6">
           {items.map((item, i) => (
-            <li key={i} className="max-w-[90ch] break-words">
+            <li key={i} className="max-w-[90ch] whitespace-pre-wrap break-words">
               {item}
             </li>
           ))}
@@ -60,7 +60,10 @@ export function MeetingSummaryView({ meeting: m }: { meeting: Meeting }) {
       </dl>
       {list(
         "Original Meeting Goals",
-        m.requirements.items.filter((r) => r.kind === "goal").map(label),
+        (m.configurationVersion === 2
+          ? m.goals
+          : m.requirements.items.filter((r) => r.kind === "goal")
+        ).map(label),
       )}
       {list("Achieved Conclusions", s.conclusions.map(content))}
       {list("Decisions Made", s.decisions.map(content))}
@@ -82,7 +85,9 @@ export function MeetingSummaryView({ meeting: m }: { meeting: Meeting }) {
                 {s.actionItems.map((a) => (
                   <tr key={a.id} className="border-b last:border-0">
                     <td className="min-w-40 py-3 pr-4">
-                      <p className="max-w-[90ch] break-words">{actionTitle(a)}</p>
+                      <p className="max-w-[90ch] whitespace-pre-wrap break-words">
+                        {actionTitle(a)}
+                      </p>
                     </td>
                     <td className="py-3 pr-4">{a.owner || tx("Unassigned")}</td>
                     <td className="whitespace-nowrap py-3 pr-4">{a.deadline || tx("Missing")}</td>

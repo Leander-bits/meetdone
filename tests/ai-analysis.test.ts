@@ -4,7 +4,12 @@ import { POST } from "@/app/api/analyze-meeting/route";
 import { DeepSeekAnalysisProvider } from "@/lib/server/deepseek-provider";
 import { normalizeExtraction } from "@/lib/server/extraction";
 import { analysisSchema } from "@/lib/models";
-import { freshDemo, applyAnalysis, evaluateMeeting, updateTranscript } from "./fixtures/meeting-state";
+import {
+  freshDemo,
+  applyAnalysis,
+  evaluateMeeting,
+  updateTranscript,
+} from "./fixtures/meeting-state";
 import { AnalysisInput, MAX_TRANSCRIPT_LENGTH } from "@/lib/analysis-contract";
 
 function input(): AnalysisInput {
@@ -87,6 +92,60 @@ function reply(value: unknown = rawAnalysis()) {
     { status: 200 },
   );
 }
+
+describe("goal document extraction", () => {
+  it("keeps evidenced secondary decisions as follow-ups without inventing required decisions", () => {
+    const raw = {
+      ...rawAnalysis(),
+      observedDecisions: [
+        {
+          description: "Secondary discussion",
+          status: "discussed_not_decided",
+          outcome: null,
+          evidenceIds: ["e1"],
+        },
+      ],
+    };
+    const normalized = normalizeExtraction(raw, input());
+    expect(normalized.decisions.at(-1)).toMatchObject({
+      status: "discussed",
+      detail: "Secondary discussion",
+      evidenceIds: ["e1"],
+    });
+    const m = freshDemo();
+    m.requirements = input().requirements;
+    m.transcript.revision = 2;
+    m.analysis = normalized;
+    const check = evaluateMeeting(m);
+    expect(check.followUpGaps.some((g) => g.explanation === "Secondary discussion")).toBe(true);
+    expect(check.blockingGaps.some((g) => g.explanation === "Secondary discussion")).toBe(false);
+    expect(() =>
+      normalizeExtraction(
+        { ...raw, observedDecisions: [{ ...raw.observedDecisions[0], evidenceIds: [] }] },
+        input(),
+      ),
+    ).toThrow("INVALID_OUTPUT");
+  });
+  it("sends visible goals, selected structure and participant names without emails", async () => {
+    const { requestAnalysis } = await import("@/lib/analysis-client");
+    const { sampleMeetings } = await import("@/lib/sample-meetings");
+    const m = sampleMeetings()[2];
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(Response.json({ error: "PROVIDER_ERROR" }, { status: 503 }));
+    vi.stubGlobal("fetch", fetcher);
+    await expect(requestAnalysis(m)).rejects.toThrow("PROVIDER_ERROR");
+    const body = JSON.parse(fetcher.mock.calls[0][1].body);
+    expect(body.context.goals).toBe(m.goals[0].label);
+    expect(body.context.structure).toBe("matrix");
+    expect(body.context.stages[0].goals).toEqual(m.structure.stages[0].goals.map((g) => g.text));
+    expect(body.context.participants[0]).not.toHaveProperty("email");
+    expect(body.context.stages[0].speakers.length).toBeGreaterThan(0);
+    expect(body.requirements).toEqual(m.requirements);
+    expect(body.transcript.text).toBe(m.transcript.text);
+    expect(m.analysis).toBeNull();
+  });
+});
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();

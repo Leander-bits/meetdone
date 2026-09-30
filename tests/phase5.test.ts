@@ -1,3 +1,4 @@
+import { upgradeGoalConfiguration } from "@/lib/goal-configuration";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   blankRequirements,
@@ -80,7 +81,7 @@ describe("custom templates", () => {
     expect(meeting.requirements).toEqual(original);
     const local = storage();
     writeMeetings(local, [meeting]);
-    expect(readMeetings(local).meetings).toEqual([meeting]);
+    expect(readMeetings(local).meetings).toEqual([upgradeGoalConfiguration(meeting)]);
   });
   it("rejects empty template content and safely recovers corrupt storage", () => {
     expect(() =>

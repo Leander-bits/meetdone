@@ -18,7 +18,7 @@ export function validRequirementLists(requirements: MeetingRequirements): boolea
     items.every(
       (r) =>
         r.label.trim().length > 0 &&
-        r.label.length <= 500 &&
+        r.label.length <= (r.kind === "goal" ? 5000 : 500) &&
         (!r.topicId || items.some((t) => t.kind === "topic" && t.id === r.topicId)),
     )
   );

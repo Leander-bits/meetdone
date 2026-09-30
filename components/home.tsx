@@ -8,6 +8,7 @@ import { useWorkspace } from "./workspace-store";
 import { AppHeader, LoadingWorkspace, Notice, meetingStatus } from "./shared";
 import { Button } from "./ui/button";
 import { CreateMeeting } from "./create-meeting";
+import { ProductInfo } from "./product-info";
 import {
   Dialog,
   DialogContent,
@@ -102,6 +103,7 @@ export function Home() {
             </div>
           </section>
         </div>
+        <ProductInfo />
       </main>
       {creating && <CreateMeeting onClose={() => setCreating(false)} />}
       <Dialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>

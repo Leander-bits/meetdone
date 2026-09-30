@@ -1,3 +1,4 @@
+import { sampleResponse } from "./sample-response";
 import { translate, type Locale } from "../lib/i18n";
 import { expect, type Locator, type Page } from "@playwright/test";
 export async function english(page: Page) {
@@ -42,16 +43,17 @@ export async function mockSampleAnalysis(page: Page, scenarioId = "launch-incomp
   await page.route("**/api/analyze-meeting", async (route) => {
     requests += 1;
     const input = route.request().postDataJSON();
+    const analysis = sampleResponse(input.requirements, scenarioId);
     await route.fulfill({
       json: {
         analysis: {
-          ...scenario.analysis,
+          ...analysis,
           id: `ai-${scenarioId}`,
           provider: "deepseek",
           scenarioId: null,
           transcriptRevision: input.transcript.revision,
           requirementsRevision: input.requirements.revision,
-          actionItems: scenario.analysis.actionItems.map((a) => ({ ...a, source: "ai" })),
+          actionItems: analysis.actionItems.map((a) => ({ ...a, source: "ai" })),
           evidence: scenario.analysis.evidence.map((e) => ({
             ...e,
             transcriptRevision: input.transcript.revision,

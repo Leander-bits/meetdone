@@ -1,3 +1,4 @@
+import { upgradeGoalConfiguration } from "@/lib/goal-configuration";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { initialStructure, moveItem, removeSegment, validStructure } from "@/lib/meeting-structure";
 import { sampleMeetings } from "@/lib/sample-meetings";
@@ -63,8 +64,8 @@ describe("AI-only product state", () => {
     expect(recovered.analysis).toBeNull();
     expect(recovered.completionCheck).toBeNull();
     expect(recovered.transcript).toEqual(m.transcript);
-    expect(recovered.requirements).toEqual(m.requirements);
-    expect(recovered.actionItems).toEqual([{ ...m.actionItems.at(-1), evidenceIds: [] }]);
+    expect(recovered.requirements).toEqual(upgradeGoalConfiguration(m).requirements);
+    expect(recovered.actionItems).toEqual(upgradeGoalConfiguration(m).actionItems);
     expect(store.get("meetdone.workspace.recovery")).toBe(raw);
   });
   it("retains genuine AI results and historical ended summaries", () => {

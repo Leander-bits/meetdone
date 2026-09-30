@@ -1,6 +1,15 @@
 export type Locale = "zh" | "en";
 export const LANGUAGE_KEY = "meetdone.language";
 export const zh: Record<string, string> = {
+  "Imported goals need review. Shorten the goal text or reduce the number of requirements before analyzing.":
+    "导入的目标需要检查，请缩短目标文本或减少要求后再分析。",
+  "Mock sample content; real AI analysis": "Mock 模拟会议内容 · 使用真实 AI 分析",
+  "Append sample follow-up": "追加示例讨论",
+  "Meeting goal prompt":
+    "描述本次会议希望达成的目标，可按以下内容填写：\n议题：需要讨论的问题\n结论：希望达成的明确共识\n决策：必须做出的选择\n行动项：需要落实的工作、负责人和截止日期",
+  Topic: "议题",
+  Conclusion: "结论",
+  Actions: "行动",
   Hour: "小时",
   Minute: "分钟",
   "Participant email": "参与者邮箱",
@@ -111,7 +120,7 @@ export const zh: Record<string, string> = {
   Decision: "决策",
   Proposal: "方案",
   Risks: "风险",
-  "Next Steps": "下一步",
+  "Next Steps": "行动",
   Role: "角色",
   Product: "产品",
   Engineering: "技术",
@@ -488,7 +497,7 @@ export const zh: Record<string, string> = {
   "New action item": "新行动项",
   "No action items yet. Analyze a transcript or add an action linked to a required output.":
     "尚无行动项。请分析会议文本，或添加行动并关联必要产出。",
-  Action: "行动",
+  Action: "行动项",
   Assigned: "责任明确",
   "Incomplete commitment": "承诺不完整",
   "Linked to gap": "已关联缺口",
@@ -631,6 +640,9 @@ export const zh: Record<string, string> = {
   "An exception reason is required to end with blockers.": "仍有阻碍时结束会议，必须填写例外原因。",
 };
 const enErrors: Record<string, string> = {
+  "Meeting goal prompt":
+    "Describe what this meeting must achieve.\nTopic: What needs discussion\nConclusion: The agreement to reach\nDecision: The choice to make\nAction: Work to assign, with an owner and deadline",
+  "Next Steps": "Actions",
   EMPTY_TRANSCRIPT: "Enter a meeting transcript",
   TRANSCRIPT_TOO_SHORT: "The transcript is too short to analyze",
   TRANSCRIPT_TOO_LONG: "Keep the transcript under 50,000 characters",

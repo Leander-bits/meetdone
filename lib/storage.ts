@@ -1,3 +1,4 @@
+import { IMPORT_REVIEW_NOTE, upgradeGoalConfiguration } from "./goal-configuration";
 import { validRequirementLists } from "./requirements";
 import { Meeting, meetingSchema } from "./models";
 import { sampleMeetings } from "./sample-meetings";
@@ -36,7 +37,12 @@ export function migrateMeeting(record: unknown): Meeting | null {
   if (!result.success) return null;
   const m = result.data;
   const wasDemoAnalysis = m.analysis?.provider === "demo";
-  if (m.lifecycle === "active" && !validRequirementLists(m.requirements)) return null;
+  if (m.lifecycle === "active" && !validRequirementLists(m.requirements)) {
+    if (m.configurationVersion !== 2) return null;
+    m.migrationNote = IMPORT_REVIEW_NOTE;
+    m.analysis = null;
+    m.completionCheck = null;
+  }
   const stale =
     m.analysis &&
     (m.analysis.transcriptRevision !== m.transcript.revision ||
@@ -76,20 +82,22 @@ export function readMeetings(storage: StorageLike): {
     raw = storage.getItem(STORAGE_KEY);
     if (!raw) return { meetings: sampleMeetings(), warning: null };
     const data = JSON.parse(raw);
-    if (![1, 2, 3].includes(data.version) || !Array.isArray(data.meetings)) throw new Error();
+    if (![1, 2, 3, 4].includes(data.version) || !Array.isArray(data.meetings)) throw new Error();
     const meetings: Meeting[] = [];
     let skipped = false;
     for (const record of data.meetings) {
       const m = migrateMeeting(record);
-      if (m && !meetings.some((saved) => saved.id === m.id)) meetings.push(m);
+      if (m && !meetings.some((saved) => saved.id === m.id))
+        meetings.push(upgradeGoalConfiguration(m));
       else skipped = true;
     }
     // Keep a recovery copy before any subsequent edits overwrite the workspace.
     if (
       skipped ||
-      data.version < 3 ||
+      data.version < 4 ||
       data.meetings.some(
-        (m: { analysis?: { provider?: string } }) => m?.analysis?.provider === "demo",
+        (m: { configurationVersion?: number; analysis?: { provider?: string } }) =>
+          m?.configurationVersion !== 2 || m?.analysis?.provider === "demo",
       )
     ) {
       try {
@@ -121,7 +129,7 @@ export function readMeetings(storage: StorageLike): {
 }
 export function writeMeetings(storage: StorageLike, meetings: Meeting[]): string | null {
   try {
-    storage.setItem(STORAGE_KEY, JSON.stringify({ version: 3, meetings }));
+    storage.setItem(STORAGE_KEY, JSON.stringify({ version: 4, meetings }));
     return null;
   } catch {
     return "Changes are available in this tab but could not be saved to this browser. Storage may be full or disabled.";

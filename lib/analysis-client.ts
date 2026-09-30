@@ -21,6 +21,30 @@ export async function requestAnalysis(
           scenarioId: meeting.transcript.scenarioId,
         },
         templateId: meeting.templateId,
+        context: {
+          goals: meeting.goals.map((g) => g.label).join("\n"),
+          structure: meeting.structure.type,
+          participants: meeting.participants.map((p) => ({
+            name: p.name,
+            role: p.roleLabel ?? p.role,
+          })),
+          stages: (meeting.structure.type === "time"
+            ? meeting.structure.segments
+            : meeting.structure.type === "speaker"
+              ? []
+              : meeting.structure.stages
+          ).map((s) => ({
+            name: s.name,
+            goals: s.goals.map((g) => g.text),
+            speakers:
+              "assignments" in s
+                ? s.assignments.flatMap((a) => {
+                    const p = meeting.participants.find((p) => p.id === a.participantId);
+                    return p ? [{ name: p.name, required: a.required }] : [];
+                  })
+                : [],
+          })),
+        },
       }),
     });
     const body = await response.json();
@@ -39,7 +63,8 @@ export async function requestAnalysis(
       throw new AnalysisError(allowed.includes(body?.error) ? body.error : "PROVIDER_ERROR");
     }
     const parsed = analysisSchema.safeParse(body.analysis);
-    if (!parsed.success || parsed.data.provider !== "deepseek") throw new AnalysisError("INVALID_OUTPUT");
+    if (!parsed.success || parsed.data.provider !== "deepseek")
+      throw new AnalysisError("INVALID_OUTPUT");
     return parsed.data;
   } catch (error) {
     if (error instanceof AnalysisError) throw error;

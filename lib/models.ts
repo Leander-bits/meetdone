@@ -29,7 +29,7 @@ export const structureTypes = ["time", "speaker", "stages", "matrix"] as const;
 export const roleSchema = z.enum(["Product", "Engineering", "Sales", "Customer", "Other"]);
 export const goalInputSchema = z.object({
   id: z.string(),
-  text: z.string().max(500),
+  text: z.string().max(1000), // Includes visible compatibility annotations on imported goals.
   builtinKey: z.string().optional(),
 });
 export const stageDefaultSchema = z.object({
@@ -212,6 +212,7 @@ export const summarySchema = z.object({
   analysisId: z.string(),
 });
 export const meetingSchema = z.object({
+  configurationVersion: z.literal(2).optional(),
   id: z.string(),
   title: z.string().min(1),
   builtinTitle: z.boolean().optional(),

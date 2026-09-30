@@ -47,12 +47,18 @@ export class DeepSeekAnalysisProvider implements AnalysisProvider<Promise<Meetin
               role: "user",
               content: JSON.stringify({
                 template: input.templateId,
-                requirements: input.requirements.items.map(({ id, kind, label, topicId }) => ({
-                  id,
-                  kind,
-                  label,
-                  topicId,
-                })),
+                context: input.context,
+                requirements: input.requirements.items.map(
+                  ({ id, kind, label, topicId, level, requireOwner, requireDeadline }) => ({
+                    id,
+                    kind,
+                    label,
+                    topicId,
+                    level,
+                    requireOwner,
+                    requireDeadline,
+                  }),
+                ),
                 transcript: input.transcript.text
                   .split(/\r?\n/)
                   .map((text, i) => ({ line: i + 1, text })),

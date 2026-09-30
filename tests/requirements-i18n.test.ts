@@ -70,7 +70,14 @@ describe("dynamic requirement lists", () => {
       },
     };
     writeMeetings(storage, [m]);
-    expect(readMeetings(storage).meetings[0].requirements).toEqual(m.requirements);
+    const restored = readMeetings(storage).meetings[0];
+    expect(restored.goals[0].label).toContain("\u786e\u8ba4\u5ba2\u6237\u9884\u7b97");
+    expect(
+      restored.requirements.items.find((r) => r.label === "\u786e\u8ba4\u5ba2\u6237\u9884\u7b97")
+        ?.level,
+    ).toBe("recommended");
+    writeMeetings(storage, [restored]);
+    expect(readMeetings(storage).meetings[0]).toEqual(restored);
   });
   it("custom transcript still cannot receive fabricated demo analysis", () => {
     expect(() => analyzeMeeting(updateTranscript(freshDemo(), "User content"))).toThrow(

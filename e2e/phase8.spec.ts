@@ -1,3 +1,4 @@
+import { sampleResponse } from "./sample-response";
 import { test, expect, type Page } from "@playwright/test";
 import { sampleMeetings } from "../lib/sample-meetings";
 import { scenarios } from "../tests/fixtures/demo";
@@ -8,6 +9,7 @@ async function analyze(page: Page, incidentalOnly = false) {
   await page.getByRole("textbox", { name: "Transcript", exact: true }).fill(scenario.transcript);
   await page.route("**/api/analyze-meeting", async (route) => {
     const input = route.request().postDataJSON();
+    const analysis = sampleResponse(input.requirements, "launch-complete");
     const actionItems = incidentalOnly
       ? ["Develop first version", "Prepare test data", "Organize meeting scenarios"].map(
           (description, i) => ({
@@ -20,11 +22,11 @@ async function analyze(page: Page, incidentalOnly = false) {
             evidenceIds: [],
           }),
         )
-      : scenario.analysis.actionItems.map((a) => ({ ...a, source: "ai", deadline: null }));
+      : analysis.actionItems.map((a) => ({ ...a, source: "ai", deadline: null }));
     await route.fulfill({
       json: {
         analysis: {
-          ...scenario.analysis,
+          ...analysis,
           actionItems,
           id: "ai-followups",
           provider: "deepseek",
@@ -108,29 +110,26 @@ test("action validation switches persist through creation, custom templates and 
 }) => {
   await english(page);
   await configuration(page);
-  await page.getByRole("checkbox", { name: "Require owner 1", exact: true }).uncheck();
-  await page.getByRole("checkbox", { name: "Require deadline 1", exact: true }).uncheck();
+  await page
+    .getByLabel("Meeting Goals", { exact: true })
+    .fill("Confirm release\nAction [owner optional; deadline optional]: Send the release notice");
   await page.getByRole("button", { name: "Save as Template", exact: true }).click();
   await page.getByLabel("Template name", { exact: true }).fill("Flexible actions");
   await page.getByRole("button", { name: "Save Template", exact: true }).click();
   const templates = await page.evaluate(
     () => JSON.parse(localStorage.getItem("meetdone.templates.v1")!).templates,
   );
-  expect(templates[0].rules.find((r: { kind: string }) => r.kind === "action")).toMatchObject({
-    requireOwner: false,
-    requireDeadline: false,
-  });
+  expect(templates[0].rules).toEqual([]);
+  expect(templates[0].defaultGoals[0].label).toContain("owner optional; deadline optional");
   await page.getByRole("button", { name: "Create Meeting", exact: true }).click();
   await page.waitForURL(/\/meetings\//);
   await page.reload();
   await page.getByRole("button", { name: "Edit", exact: true }).click();
-  await expect(
-    page.getByRole("checkbox", { name: "Require owner 1", exact: true }),
-  ).not.toBeChecked();
-  await expect(
-    page.getByRole("checkbox", { name: "Require deadline 1", exact: true }),
-  ).not.toBeChecked();
-  await page.getByRole("checkbox", { name: "Require owner 1", exact: true }).check();
+  const goal = page.getByLabel("Meeting Goals", { exact: true });
+  await expect(goal).toHaveValue(
+    "Confirm release\nAction [owner optional; deadline optional]: Send the release notice",
+  );
+  await goal.fill("Confirm release\nAction [deadline optional]: Send the release notice");
   await page.getByRole("button", { name: "Save requirements", exact: true }).click();
   expect(
     (await saved(page))[0].requirements.items.find((r: { kind: string }) => r.kind === "action"),
@@ -148,8 +147,12 @@ test("required deadlines still block until explicitly disabled and reanalyzed", 
     page.getByRole("heading", { name: "Blocking Issues (2)", exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Edit", exact: true }).click();
-  for (const n of [1, 2])
-    await page.getByRole("checkbox", { name: `Require deadline ${n}`, exact: true }).uncheck();
+  const goal = page.getByLabel("Meeting Goals", { exact: true });
+  await goal.fill(
+    (await goal.inputValue())
+      .replaceAll("\u884c\u52a8\u9879:", "Action [deadline optional]:")
+      .replaceAll("\u884c\u52a8\u9879\uff1a", "Action [deadline optional]:"),
+  );
   await page.getByRole("button", { name: "Save requirements", exact: true }).click();
   await expect(page.getByRole("status")).toHaveText("Not analyzed");
   await analyze(page);
@@ -158,7 +161,10 @@ test("required deadlines still block until explicitly disabled and reanalyzed", 
     page.getByRole("heading", { name: "Blocking Issues (0)", exact: true }),
   ).toBeVisible();
   const rows = page.locator("#analysis-results .divide-y").first();
-  for (const name of ["Send the release notice", "Publish the release monitoring checklist"]) {
+  for (const name of [
+    "\u53d1\u9001\u53d1\u5e03\u901a\u77e5",
+    "\u53d1\u5e03\u4e0a\u7ebf\u76d1\u63a7\u6e05\u5355",
+  ]) {
     await expect(
       rows.locator(":scope > div").filter({ hasText: name }).getByText("Complete", { exact: true }),
     ).toBeVisible();

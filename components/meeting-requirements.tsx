@@ -1,6 +1,5 @@
 "use client";
-import { Meeting, Requirement, kindLabels, actionValidation } from "@/lib/models";
-import { orderedRequirements, ruleKinds } from "@/lib/requirement-display";
+import { Meeting, Requirement } from "@/lib/models";
 import { useI18n } from "./language-provider";
 
 export function MeetingRequirementsView({ meeting: m }: { meeting: Meeting }) {
@@ -11,7 +10,9 @@ export function MeetingRequirementsView({ meeting: m }: { meeting: Meeting }) {
   const list = (items: Requirement[], numbered = true) => (
     <ol className={`space-y-1 ${numbered ? "list-decimal pl-5" : "list-none"}`}>
       {items.map((r) => (
-        <li key={r.id}>{label(r)}</li>
+        <li key={r.id} className="whitespace-pre-wrap break-words">
+          {label(r)}
+        </li>
       ))}
     </ol>
   );
@@ -20,14 +21,6 @@ export function MeetingRequirementsView({ meeting: m }: { meeting: Meeting }) {
       r.kind === "speaker" &&
       r.level === "required" &&
       (s.type !== "matrix" || !s.stages.some((stage) => r.topicId === `structure-${stage.id}`)),
-  );
-  const rules = orderedRequirements(
-    m.requirements.items.filter(
-      (r) =>
-        r.level !== "record_only" &&
-        ruleKinds.some((kind) => kind === r.kind) &&
-        (!recorded || !r.id.startsWith("structure-")),
-    ),
   );
   return (
     <div className="space-y-5 text-sm leading-6">
@@ -93,27 +86,6 @@ export function MeetingRequirementsView({ meeting: m }: { meeting: Meeting }) {
             ))}
           </ol>
         )}
-      </section>
-      <section className="border-t pt-4">
-        <h3 className="mb-2 font-semibold">{t("Meeting Rules")}</h3>
-        <ol className="list-decimal space-y-2 pl-5">
-          {rules.map((r) => (
-            <li key={r.id}>
-              <span className="text-muted-foreground">{t(kindLabels[r.kind])} · </span>
-              {label(r)}
-              {r.kind === "action" && (
-                <span className="block text-xs text-muted-foreground">
-                  {[
-                    actionValidation(r).requireOwner && t("Owner required"),
-                    actionValidation(r).requireDeadline && t("Deadline required"),
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </span>
-              )}
-            </li>
-          ))}
-        </ol>
       </section>
       {s.type !== "speaker" && speakers.length > 0 && (
         <section>

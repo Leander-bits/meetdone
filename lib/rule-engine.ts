@@ -204,6 +204,24 @@ export function checkCompletion(input: CheckInput): CompletionCheck {
         blocking ? "BLOCKING" : "FOLLOW_UP",
       );
     }
+    for (const decision of analysis.decisions.filter(
+      (d) => d.status === "discussed" && !requirements.items.some((r) => r.id === d.requirementId),
+    )) {
+      if (
+        !analysis.unresolvedIssues.some((issue) =>
+          issue.evidenceIds.some((id) => decision.evidenceIds.includes(id)),
+        )
+      )
+        add(
+          "unresolved_issue",
+          undefined,
+          decision.detail || "Discussed, not decided",
+          "Confirm the outcome in a follow-up.",
+          decision.evidenceIds,
+          `:${decision.requirementId}`,
+          "FOLLOW_UP",
+        );
+    }
     // Ad-hoc follow-ups still surface incomplete commitments.
     for (const a of actionItems.filter(
       (a) => !requirements.items.some((r) => r.id === a.requirementId && r.kind === "action"),
